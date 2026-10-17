@@ -1393,7 +1393,7 @@
   <!-- 學姊叮嚀（新手引導，一頁式） -->
   <div id="tips-screen" onclick="if(event.target===this) closeSeniorTips()">
     <div class="tips-card">
-      <div class="tips-head"><span class="tips-badge">學姊</span><h2>上班前，學姊叮嚀你幾句</h2></div>
+      <div class="tips-head"><span class="tips-badge">學姊</span><h2 id="tips-title">第一天上白班前，學姊叮嚀你幾句</h2></div>
       <ul class="tips-list">
         <li><span class="ti">🚶</span><div><b>走路</b>你點地板或病房卡就會走過去了很簡單，不像我還要用雙腳走，好累。</div></li>
         <li><span class="ti">🔴</span><div><b>看顏色</b><span class="cr">紅框</span>是突發事件，拖太久會出人命；<span class="co">橘框</span>是特殊處置；<span class="cb">藍框</span>就是病房常規。看到紅色先跑起來。</div></li>
@@ -8807,7 +8807,8 @@
 
 
     /* ===== 學姊叮嚀：第一次按「走投無路只好上班」先出現，之後可從開始畫面「📋 學姊叮嚀」再打開 ===== */
-    const TIPS_KEY = 'ward24_tips_seen';
+    const TIPS_KEY = 'ward24_tips_seen_';   // 每個班別各自記錄：三班第一次上班都會出現
+    const TIPS_SHIFT_NAME = { day: '白班', evening: '小夜班', night: '大夜班' };
     const TIPS_SHIFT = {
       day: '☀️ 白班：管路類的常規在班內完成就好，有空再去做，給藥、翻身、量 V/S 這些先去做。',
       evening: '🌆 小夜：很忙，記得自己帶水和零食，不要餓到了。',
@@ -8817,17 +8818,18 @@
     function openSeniorTips(thenShop) {
       _tipsThenShop = !!thenShop;
       document.getElementById('tips-shift').innerText = TIPS_SHIFT[selectedShift] || TIPS_SHIFT.day;
+      document.getElementById('tips-title').innerText = `第一天上${TIPS_SHIFT_NAME[selectedShift] || '白班'}前，學姊叮嚀你幾句`;
       document.getElementById('tips-go').innerText = thenShop ? '知道了學姊，去買東西 →' : '知道了學姊';
       document.getElementById('tips-screen').classList.add('active');
     }
     function closeSeniorTips() {
       SoundFX.playClick();
       document.getElementById('tips-screen').classList.remove('active');
-      try { localStorage.setItem(TIPS_KEY, '1'); } catch (e) { }
+      try { localStorage.setItem(TIPS_KEY + selectedShift, '1'); } catch (e) { }
       if (_tipsThenShop) { _tipsThenShop = false; openShopScreen(); }
     }
     function goToWork() {
-      let seen = false; try { seen = localStorage.getItem(TIPS_KEY) === '1'; } catch (e) { }
+      let seen = false; try { seen = localStorage.getItem(TIPS_KEY + selectedShift) === '1'; } catch (e) { }
       if (seen) openShopScreen(); else { SoundFX.playClick(); openSeniorTips(true); }
     }
 

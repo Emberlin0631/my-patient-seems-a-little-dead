@@ -1519,6 +1519,22 @@
       <div class="input-group ig-shift">
         <label class="input-label">今天輪哪一班？</label>
         <div style="display:flex; flex-direction:column; gap:8px;">
+          <!-- 實習班 -->
+          <button
+            type="button"
+            id="btn-shift-intern"
+            class="shift-card-btn"
+            onclick="setShiftChoice('intern')"
+          >
+            <div class="shift-card-header">
+              <span class="shift-card-title shift-intern-title">🎓 實習班（08:00 起）</span>
+              <span class="shift-bed-tag tag-intern">1人顧4床</span>
+            </div>
+            <div class="shift-desc-text">
+              還沒獨立的第一天，學姊全程跟著你，只顧4床，遇到重要的事學姊會在旁邊提醒你該怎麼做。
+            </div>
+          </button>
+
           <!-- 白班 -->
           <button
             type="button"
@@ -1567,21 +1583,6 @@
             </div>
           </button>
 
-          <!-- 實習班 -->
-          <button
-            type="button"
-            id="btn-shift-intern"
-            class="shift-card-btn"
-            onclick="setShiftChoice('intern')"
-          >
-            <div class="shift-card-header">
-              <span class="shift-card-title shift-intern-title">🎓 實習班（08:00 起）</span>
-              <span class="shift-bed-tag tag-intern">1人顧4床</span>
-            </div>
-            <div class="shift-desc-text">
-              還沒獨立的第一天，學姊全程跟著你，只顧4床，遇到重要的事學姊會在旁邊提醒你該怎麼做。
-            </div>
-          </button>
         </div>
       </div>
 

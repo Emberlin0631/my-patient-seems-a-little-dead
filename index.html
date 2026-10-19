@@ -1159,6 +1159,17 @@
     @keyframes alarmShake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-3px,1px); } 40% { transform: translate(3px,-1px); } 60% { transform: translate(-2px,-1px); } 80% { transform: translate(2px,1px); } }
     .alarm-shake { animation: alarmShake .45s ease-in-out; }
     @media (prefers-reduced-motion: reduce) { .alarm-shake { animation: none; } #nurse-img { transition: none; } }
+    .clock-chip { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 73; background: rgba(15,23,42,.92); color: #e0f2fe; border: 2px solid #38bdf8; border-radius: 999px; padding: 7px 16px; font-weight: 800; font-size: 14.5px; white-space: nowrap; pointer-events: none; opacity: 0; }
+    .clock-chip.show { animation: clockChip 4.5s ease forwards; }
+    @keyframes clockChip { 0% { opacity: 0; transform: translate(-50%, -8px); } 8% { opacity: 1; transform: translate(-50%, 0); } 85% { opacity: 1; } 100% { opacity: 0; } }
+    @media (max-width: 700px) { .clock-chip { font-size: 12.5px; padding: 5px 12px; } }
+    .intercom-item { display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left; background: #1e293b; color: #f1f5f9; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; cursor: pointer; }
+    .intercom-item b { color: #fbbf24; margin-right: 6px; }
+    .intercom-item .ic-r { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+    .intercom-item:hover { background: #334155; }
+    .intercom-fab { position: absolute; right: 12px; bottom: 12px; z-index: 72; background: #d97706; color: #fff; border: 2px solid #fde68a; border-radius: 999px; padding: 8px 14px; font-weight: 900; font-size: 14px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); animation: wardPulse .9s ease-in-out infinite; }
+    @media (max-width: 700px) { .intercom-fab { font-size: 12.5px; padding: 6px 11px; right: 8px; bottom: 8px; } }
+    .station-btn.intercom-ringing { background: #d97706 !important; animation: wardPulse .9s ease-in-out infinite; }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
     /* 學姊留言 */
@@ -1722,6 +1733,7 @@
         <button class="station-btn" onclick="event.stopPropagation(); drinkWaterAction();">💧 喝水 (+25% 水分 / 2分)</button>
         <button class="station-btn" style="background:#475569;" onclick="event.stopPropagation(); writeRecordAction();">📝 補紀錄 (-1 筆 / 5分)</button>
         <button class="station-btn" style="background:#0d9488;" onclick="event.stopPropagation(); restAction();">😮‍💨 小歇一下 (+5 體力 / 5分)</button>
+        <button class="station-btn" id="intercom-btn" style="background:#7c3aed;" onclick="event.stopPropagation(); openIntercom();">📞 對講機</button>
         <button class="station-btn" id="btn-call-doctor" style="background:#8b5cf6; display:none;" onclick="event.stopPropagation(); callDoctorForBlood();">📞 請醫師來on (8:30後)</button>
       </div>
 
@@ -1756,6 +1768,16 @@
           <div class="event-desc" id="event-desc"></div>
           <div class="options-grid" id="options-container"></div>
         </div>
+      </div>
+
+      <!-- 對講機 -->
+      <div class="info-modal" id="intercom-modal" onclick="event.stopPropagation();">
+        <div class="info-modal-header">
+          <h3 style="color:#fbbf24;">📞 對講機：哪床按鈴？</h3>
+          <button class="hud-btn" onclick="closeModal('intercom-modal')">✕ 關閉</button>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">小事用對講機就能處理，不用走過去；需要到床邊的，對講機先確認狀況。</div>
+        <div id="intercom-list"></div>
       </div>
 
       <!-- ITEM BACKPACK MODAL -->
@@ -1851,6 +1873,7 @@
       <button type="button" class="speed-btn active" data-tab="patients" onclick="setCollTab('patients')">📂 個案</button>
       <button type="button" class="speed-btn" data-tab="endings" onclick="setCollTab('endings')">📕 結局</button>
       <button type="button" class="speed-btn" data-tab="ach" onclick="setCollTab('ach')">🏅 稱號</button>
+      <button type="button" class="speed-btn" data-tab="cards" onclick="setCollTab('cards')">💌 感謝卡</button>
       <button type="button" class="speed-btn" data-tab="stats" onclick="setCollTab('stats')">📊 統計</button>
     </div>
     <div id="coll-panel-patients" class="coll-panel">
@@ -1883,6 +1906,7 @@
     </div>
     <div id="coll-panel-endings" class="coll-panel" style="display:none;"></div>
     <div id="coll-panel-ach" class="coll-panel" style="display:none;"></div>
+    <div id="coll-panel-cards" class="coll-panel" style="display:none;"></div>
     <div id="coll-panel-stats" class="coll-panel" style="display:none;"></div>
     <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
       <span style="font-size:10.5px; color:#64748b;">紀錄只存在這個瀏覽器，換裝置、清除瀏覽資料或使用無痕視窗會歸零。</span>
@@ -3159,6 +3183,15 @@
       }
       if (x && x.endShift) { triggerEndShift(true, x.endShift); return true; }
       if (x && x.die) { killPatient(p, x.text || '未及時處置，病人已死亡'); return false; }
+      if (x && x.penalty) {   // 逾時扣分（不結束這一班）
+        const pe = x.penalty;
+        if (pe.safety) gameState.patientSafety = Math.max(0, Math.min(100, gameState.patientSafety + pe.safety));
+        if (pe.stress) gameState.stress = Math.max(0, Math.min(100, gameState.stress + pe.stress));
+        if (pe.favor) gameState.seniorFavor = Math.max(0, Math.min(100, gameState.seniorFavor + pe.favor));
+        showToast(`⏰【病房 ${p.assignedRoom}】${x.toast || (ev.data.title + ' 超過時限')}`, 5000);
+        updateRoomCardsVisualHierarchy(); updateHUD();
+        return false;
+      }
       if (x && x.event) {
         showToast(`⏰【病房 ${p.assignedRoom}】${ev.data.title} 超過時限，病況惡化！`, 5000);
         ringRoomAlarm({ time: gameState.currentTime, patient: p, data: resolveEventFromTemplate({ eventId: x.event }, p) });
@@ -3383,6 +3416,206 @@
       return null;
     }
 
+    /* ===== 新增事件（2026-10-20）：化療、病人不在病房、家屬倒地、顱內出血、大夜事件、呼叫鈴（對講機） ===== */
+    Object.assign(EVENT_TEMPLATES.special, {
+      "SPECIAL_CHEMO": {
+        "id": "SPECIAL_CHEMO", "category": "special",
+        "title": "化療給藥",
+        "desc": "醫師開立化療醫囑，藥局送來化療藥（含 [term:發泡性藥物:Vesicant，外滲到皮下會讓組織起水泡、潰瘍甚至壞死，例如 Idarubicin]）。給藥前要核對醫囑與劑量、確認管路通暢。",
+        "options": [
+          { "keyTag": "A", "text": "雙人核對醫囑、劑量與體表面積，確認管路回血通暢，先給止吐藥，穿戴化療防護裝備後給藥", "time": 15, "stress": 2, "stamina": -4, "hydration": 0, "records": 2, "safety": 8, "favor": 0,
+            "hint": "化療給藥要雙人核對醫囑、劑量與體表面積，給藥前確認管路有回血、通暢，依醫囑先給止吐藥，並穿戴防護裝備，避免職業暴露。" },
+          { "keyTag": "B", "text": "自己核對一下就掛上，管路有在滴就好，手套口罩免了", "time": 5, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -10, "favor": 0,
+            "hint": "化療藥要雙人核對；沒確認回血就給藥，發泡性藥物可能外滲造成組織壞死；不穿防護裝備也會讓自己暴露在化療藥中。",
+            "outcomes": [{ "p": 0.35, "event": "EMERGENT_CHEMO_EXTRAVASATION", "delayMin": 20, "toast": "病人說打針的地方又痛又腫……" }] },
+          { "keyTag": "C", "text": "雙人核對後給藥，止吐藥等病人吐了再給", "time": 10, "stress": 0, "stamina": -3, "hydration": 0, "records": 2, "safety": -4, "favor": 0,
+            "hint": "化療前依醫囑先給止吐藥，預防比吐了再處理有效，病人也比較不難受。" },
+          { "keyTag": "D", "text": "先去其他床，等等再來給藥", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+        ]
+      },
+      "SPECIAL_ELOPEMENT": {
+        "id": "SPECIAL_ELOPEMENT", "category": "special",
+        "title": "病人不在病房",
+        "desc": "巡房發現病人不在床上，點滴架也不見了。隔壁床家屬說他剛剛說要下樓買東西。病人正在化療、血小板偏低。",
+        "deadlineMinutes": 45, "onExpire": { "event": "SPECIAL_FALL" },
+        "options": [
+          { "keyTag": "A", "text": "先在樓層與病房附近找人、聯絡家屬，同時通報護理長與醫師，依院內流程請警衛協尋並記錄", "time": 15, "stress": 6, "stamina": -4, "hydration": 0, "records": 2, "safety": 6, "favor": 0,
+            "hint": "病人不在病房要先找人、聯絡家屬，並依院內「病人擅自離院」流程通報護理長、醫師與警衛協尋，找到後評估狀況並記錄。" },
+          { "keyTag": "B", "text": "應該只是去買東西，等等就回來了", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -10, "favor": 0,
+            "hint": "化療中、血小板低的病人自己帶著點滴離開，可能跌倒出血或管路脫落，不能只是等。",
+            "outcomes": [{ "p": 0.4, "event": "SPECIAL_FALL", "delayMin": 30, "toast": "警衛來電：在樓梯間發現你的病人跌倒了！" }] },
+          { "keyTag": "C", "text": "叫看護去找，自己繼續忙", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -5, "favor": 0,
+            "hint": "可以請人幫忙找，但仍要通報護理長與醫師並追蹤結果，責任還是在主護。" }
+        ]
+      },
+      "SPECIAL_FALL": {
+        "id": "SPECIAL_FALL", "category": "special",
+        "title": "病人跌倒",
+        "desc": "聽到「碰」一聲，病人在床邊跌倒，坐在地上說頭有撞到。病人血小板偏低。",
+        "options": [
+          { "keyTag": "A", "text": "先不急著扶起，評估意識、生命徵象、有無外傷與出血，通知醫師，協助回床後填寫跌倒通報", "time": 12, "stress": 4, "stamina": -5, "hydration": 0, "records": 3, "safety": 8, "favor": 0,
+            "hint": "跌倒先評估再移動：意識、生命徵象、外傷與疼痛；血小板低又撞到頭要通知醫師、注意顱內出血徵象，事後填寫跌倒異常事件通報。" },
+          { "keyTag": "B", "text": "先扶回床上休息，看起來沒事就好", "time": 3, "stress": 0, "stamina": -2, "hydration": 0, "records": 0, "safety": -10, "favor": 0,
+            "hint": "跌倒沒評估就扶起、也沒通知醫師，血小板低的病人撞到頭可能延遲出現顱內出血。",
+            "outcomes": [{ "p": 0.3, "event": "EMERGENT_ICH", "delayMin": 60, "toast": "剛剛跌倒的病人說頭越來越痛，還吐了……" }] },
+          { "keyTag": "C", "text": "唸家屬怎麼沒顧好", "time": 2, "stress": 3, "stamina": 0, "hydration": 0, "records": 0, "safety": -6, "favor": 0,
+            "hint": "怪家屬不能解決問題；跌倒要先評估病人、通知醫師並通報，再一起討論預防跌倒的方法。" }
+        ]
+      },
+      "SPECIAL_NIGHT_INSOMNIA": {
+        "id": "SPECIAL_NIGHT_INSOMNIA", "category": "special",
+        "title": "病人睡不著",
+        "desc": "凌晨病人按鈴說睡不著，要求吃安眠藥。病人今天剛做完化療，晚上起床上廁所好幾次。",
+        "options": [
+          { "keyTag": "A", "text": "先問睡不著的原因，依 PRN 醫囑給藥，床欄拉起、呼叫鈴放手邊，提醒下床先按鈴", "time": 6, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 5, "favor": 0,
+            "hint": "失眠先找原因（疼痛、焦慮、頻尿、環境吵）；安眠藥依 PRN 醫囑給，給藥後跌倒風險上升，要拉起床欄、呼叫鈴放手邊，提醒下床先按鈴。" },
+          { "keyTag": "B", "text": "直接給兩顆，讓他好好睡", "time": 2, "stress": 0, "stamina": 0, "hydration": 0, "records": 1, "safety": -8, "favor": 0,
+            "hint": "安眠藥要依醫囑劑量給，自行加量會增加跌倒和呼吸抑制的風險。",
+            "outcomes": [{ "p": 0.35, "event": "SPECIAL_FALL", "delayMin": 60, "toast": "剛吃安眠藥的病人自己下床上廁所……" }] },
+          { "keyTag": "C", "text": "跟他說閉上眼睛就睡著了", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -2, "favor": 0,
+            "hint": "沒有評估原因，病人可能是痛或焦慮才睡不著，問題沒有解決。" }
+        ]
+      },
+      "SPECIAL_NIGHT_PAIN": {
+        "id": "SPECIAL_NIGHT_PAIN", "category": "special",
+        "title": "癌痛爆發痛",
+        "desc": "病人凌晨痛醒，說骨頭痛到受不了，疼痛分數 8 分。平常有吃長效止痛藥，另有突破性疼痛的 PRN 醫囑。",
+        "options": [
+          { "keyTag": "A", "text": "評估疼痛部位、性質與分數，依 PRN 醫囑給突破性疼痛藥物，30 分鐘後再評估並記錄", "time": 6, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 6, "favor": 0,
+            "hint": "突破性疼痛要評估後依 PRN 醫囑給藥，給藥後再評估效果並記錄；止痛效果不好要通知醫師調整。" },
+          { "keyTag": "B", "text": "叫他忍到早上醫師查房再說", "time": 0, "stress": 3, "stamina": 0, "hydration": 0, "records": 0, "safety": -8, "favor": 0,
+            "hint": "疼痛 8 分不該讓病人忍到天亮，有 PRN 醫囑就要依醫囑處理，沒效再通知醫師。" },
+          { "keyTag": "C", "text": "長效止痛藥多給一顆", "time": 2, "stress": 0, "stamina": 0, "hydration": 0, "records": 1, "safety": -10, "favor": 0,
+            "hint": "長效止痛藥不是用來處理突破性疼痛，自行加量可能造成嗜睡、呼吸抑制。" }
+        ]
+      },
+      // 呼叫鈴：可在護理站用對講機處理（remote: true 的選項），也可以走過去處理
+      "CALL_AC": {
+        "id": "CALL_AC", "category": "special", "callbell": true,
+        "title": "呼叫鈴：冷氣好冷",
+        "desc": "病人按呼叫鈴：「護理師，冷氣好冷喔！」",
+        "deadlineMinutes": 30, "onExpire": { "penalty": { "stress": 4, "favor": -3 }, "toast": "呼叫鈴響了半小時沒人理，家屬跑到護理站抱怨……" },
+        "options": [
+          { "keyTag": "A", "remote": true, "text": "用對講機請家屬用遙控器把溫度調高，順便多拿一條被子", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "這種小事用對講機就能處理，不用跑一趟。" },
+          { "keyTag": "B", "text": "走過去幫他調溫度、拿被子", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": 0, "favor": 0 }
+        ]
+      },
+      "CALL_URINAL": {
+        "id": "CALL_URINAL", "category": "special", "callbell": true,
+        "title": "呼叫鈴：要尿壺",
+        "desc": "病人按呼叫鈴：「護理師，我要尿尿，尿壺在哪裡？」",
+        "deadlineMinutes": 30, "onExpire": { "penalty": { "stress": 4, "favor": -3 }, "toast": "呼叫鈴響了半小時沒人理，家屬跑到護理站抱怨……" },
+        "options": [
+          { "keyTag": "A", "remote": true, "text": "用對講機請家屬協助，提醒尿液先別倒掉要記錄", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "請家屬協助並提醒保留尿液記錄 I/O，不用每次親自跑。" },
+          { "keyTag": "B", "text": "走過去幫忙並記錄尿量", "time": 4, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": 0, "favor": 0 }
+        ]
+      },
+      "CALL_IV_DONE": {
+        "id": "CALL_IV_DONE", "category": "special", "callbell": true,
+        "title": "呼叫鈴：點滴滴完了",
+        "desc": "病人按呼叫鈴：「護理師，點滴機一直叫，好像滴完了。」",
+        "deadlineMinutes": 30, "onExpire": { "event": "EMERGENT_OCCLUSION" },
+        "options": [
+          { "keyTag": "A", "remote": true, "text": "用對講機說馬上過去，請家屬先不要動管路", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "點滴滴完要親自去換或沖管，對講機先安撫、確認狀況，再過去處理。",
+            "outcomes": [{ "event": "ROUTINE_INFUSION", "delayMin": 0 }] },
+          { "keyTag": "B", "remote": true, "text": "用對講機請家屬把滾輪關掉就好", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -5, "favor": 0,
+            "hint": "管路不能交給家屬處理，放著不管可能回血堵塞。",
+            "outcomes": [{ "p": 0.4, "event": "EMERGENT_OCCLUSION", "delayMin": 20 }] },
+          { "keyTag": "C", "text": "走過去換上新的點滴並沖管", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 2, "favor": 0,
+            "hint": "到床邊確認、換上新的點滴並沖管，是最穩的做法。" }
+        ]
+      },
+      "CALL_CHEST": {
+        "id": "CALL_CHEST", "category": "special", "callbell": true,
+        "title": "呼叫鈴：胸口悶悶的",
+        "desc": "病人按呼叫鈴：「護理師，我胸口悶悶的，有點喘。」",
+        "deadlineMinutes": 20, "onExpire": { "event": "EMERGENT_VITAL_DYSPNEA" },
+        "options": [
+          { "keyTag": "A", "remote": true, "text": "用對講機說馬上過去，帶著血氧機和生命徵象監測器", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 2, "favor": 0,
+            "hint": "胸悶可能是心臟或肺的問題，對講機問完要馬上過去評估，不能只在對講機裡安撫。",
+            "outcomes": [{ "event": "SPECIAL_VITAL_TACHY", "delayMin": 0 }] },
+          { "keyTag": "B", "remote": true, "text": "用對講機請他深呼吸，躺著休息一下", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -8, "favor": 0,
+            "hint": "胸悶不能只在對講機裡請他休息，要親自評估生命徵象。",
+            "outcomes": [{ "p": 0.4, "event": "EMERGENT_VITAL_DYSPNEA", "delayMin": 20 }] },
+          { "keyTag": "C", "text": "走過去量生命徵象、血氧，詢問胸悶的性質並通知醫師", "time": 8, "stress": 2, "stamina": -2, "hydration": 0, "records": 2, "safety": 6, "favor": 0,
+            "hint": "胸悶要到床邊評估：生命徵象、血氧、疼痛性質，必要時做心電圖並通知醫師。" }
+        ]
+      },
+      "CALL_ASK_TIME": {
+        "id": "CALL_ASK_TIME", "category": "special", "callbell": true,
+        "title": "呼叫鈴：家屬問換藥時間",
+        "desc": "家屬按呼叫鈴：「請問傷口今天什麼時候換藥？」",
+        "deadlineMinutes": 30, "onExpire": { "penalty": { "stress": 4, "favor": -3 }, "toast": "呼叫鈴響了半小時沒人理，家屬跑到護理站抱怨……" },
+        "options": [
+          { "keyTag": "A", "remote": true, "text": "用對講機說明換藥時間，請他們安心等", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "單純詢問用對講機回答就好，省下走一趟的時間。" },
+          { "keyTag": "B", "text": "走過去當面說明", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": 0, "favor": 0 }
+        ]
+      }
+    });
+    Object.assign(EVENT_TEMPLATES.emergent, {
+      "EMERGENT_CHEMO_EXTRAVASATION": {
+        "id": "EMERGENT_CHEMO_EXTRAVASATION", "category": "emergent",
+        "title": "化療藥物外滲",
+        "desc": "化療輸注中，病人注射部位紅腫、灼熱刺痛，回抽沒有回血，疑似發泡性化療藥外滲！",
+        "deadlineMinutes": 20, "onExpire": { "penalty": { "safety": -15 }, "toast": "外滲處起水泡、範圍越來越大……" },
+        "options": [
+          { "keyTag": "A", "text": "立即停止輸注、保留針頭並回抽殘藥，通知醫師，依藥物種類冷敷或熱敷並給解毒劑，標記範圍拍照記錄", "time": 15, "stress": 5, "stamina": -5, "hydration": 0, "records": 3, "safety": 8, "favor": 0,
+            "hint": "外滲先停止輸注、保留針頭回抽殘藥，通知醫師；依藥物種類決定冷敷或熱敷，並依醫囑給解毒劑，標記範圍、拍照追蹤。" },
+          { "keyTag": "B", "text": "直接拔針，換另一隻手重新打，繼續把藥打完", "time": 8, "stress": 2, "stamina": -2, "hydration": 0, "records": 1, "safety": -12, "favor": 0,
+            "hint": "沒先回抽殘藥、沒通知醫師就拔針，外滲的藥留在組織裡會持續傷害；處理完外滲前不該急著繼續給藥。" },
+          { "keyTag": "C", "text": "冰敷一下，點滴調慢繼續滴", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": -15, "favor": 0,
+            "hint": "已經外滲還繼續滴，藥會一直漏到皮下，可能造成大範圍組織壞死。" }
+        ]
+      },
+      "EMERGENT_FAMILY_IHCA": {
+        "id": "EMERGENT_FAMILY_IHCA", "category": "emergent",
+        "title": "陪病家屬倒地無反應",
+        "desc": "病房裡傳來尖叫：陪病的家屬突然倒在地上，叫不醒、沒有正常呼吸！",
+        "deadlineMinutes": 10, "onExpire": { "penalty": { "safety": -20, "stress": 15 }, "toast": "家屬急救延誤，雖然送到急診，情況很不樂觀……" },
+        "options": [
+          { "keyTag": "A", "text": "呼救、啟動院內急救（Code Blue），立刻開始 CPR，請同事推急救車與 AED", "time": 20, "stress": 10, "stamina": -15, "hydration": -2, "records": 2, "safety": 10, "favor": 0,
+            "hint": "家屬在院內倒下一樣要啟動院內急救：呼救、廣播 Code Blue、立刻 CPR、拿 AED，不要等。" },
+          { "keyTag": "B", "text": "請其他家屬打 119", "time": 2, "stress": 5, "stamina": 0, "hydration": 0, "records": 0, "safety": -15, "favor": 0,
+            "hint": "在醫院裡要直接啟動院內急救小組，等救護車會延誤 CPR。" },
+          { "keyTag": "C", "text": "先扶到椅子上休息看看", "time": 2, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": -20, "favor": 0,
+            "hint": "叫不醒又沒有正常呼吸就是心跳停止，要立刻 CPR，不能讓他休息。" }
+        ]
+      },
+      "EMERGENT_ICH": {
+        "id": "EMERGENT_ICH", "category": "emergent",
+        "title": "突發顱內出血（ICH）",
+        "desc": "血小板低下的病人突然劇烈頭痛、噴射狀嘔吐，說話開始含糊，一側手腳無力。",
+        "deadlineMinutes": 20,
+        "failEndingReason": "【顱內出血延誤處置】血小板低下的病人顱內出血遲遲沒有處理，病人陷入昏迷，送 ICU 後宣告不治。",
+        "options": [
+          { "keyTag": "A", "text": "立即評估意識、瞳孔與生命徵象，床頭抬高 30 度、側躺防吸入，通知醫師、準備緊急腦部 CT，依醫囑備血小板", "time": 15, "stress": 8, "stamina": -6, "hydration": 0, "records": 3, "safety": 10, "favor": 0,
+            "hint": "血小板低又突然頭痛、嘔吐、神經學變化要懷疑顱內出血：評估 GCS 與瞳孔、床頭抬高、預防吸入，立即通知醫師安排腦部 CT，依醫囑輸注血小板。" },
+          { "keyTag": "B", "text": "給止痛藥和止吐藥，讓他睡一下", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -15, "favor": 0,
+            "hint": "止痛止吐只會掩蓋症狀，延誤 CT 與治療，顱內出血可能快速惡化。",
+            "outcomes": [{ "p": 0.5, "event": "EMERGENT_VITAL_ARREST", "delayMin": 30 }] },
+          { "keyTag": "C", "text": "應該是偏頭痛，叫他多喝水休息", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -20, "favor": 0,
+            "hint": "頭痛加上嘔吐、說話含糊、單側無力是神經學急症，不是偏頭痛。" }
+        ]
+      },
+      "EMERGENT_NIGHT_DELIRIUM": {
+        "id": "EMERGENT_NIGHT_DELIRIUM", "category": "emergent",
+        "title": "病人躁動拉扯管路",
+        "desc": "凌晨病人突然躁動、胡言亂語，一直想拔掉 PICC 和點滴，還想爬下床。",
+        "deadlineMinutes": 25, "onExpire": { "penalty": { "safety": -12 }, "toast": "病人把 PICC 拔出來了，噴了一床血……" },
+        "options": [
+          { "keyTag": "A", "text": "先確保安全並找人幫忙，評估缺氧、低血糖、疼痛等原因，通知醫師，必要時依醫囑約束並記錄", "time": 15, "stress": 6, "stamina": -6, "hydration": 0, "records": 3, "safety": 8, "favor": 0,
+            "hint": "譫妄躁動先確保安全，並找原因：測血氧、血糖、評估疼痛與用藥；通知醫師，約束要有醫囑並定時評估、記錄。" },
+          { "keyTag": "B", "text": "沒有醫囑先把手綁起來再說", "time": 4, "stress": 2, "stamina": -2, "hydration": 0, "records": 0, "safety": -10, "favor": 0,
+            "hint": "約束需要醫囑與評估，也沒有找躁動的原因；缺氧或低血糖造成的躁動，綁起來只會延誤處置。" },
+          { "keyTag": "C", "text": "交給家屬陪著就好", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -8, "favor": 0,
+            "hint": "家屬陪伴有幫助，但仍要評估原因並通知醫師，病人隨時可能拔管或跌倒。" }
+        ]
+      }
+    });
     const ALL_EVENT_TEMPLATES = {
       ...EVENT_TEMPLATES.routine,
       ...EVENT_TEMPLATES.special,
@@ -8595,6 +8828,9 @@
       { id: "snow_full", name: "☕ Serenbucks(去冰補滿)", desc: "加了15元所以有一杯，壓力-10，水分+20，移動速度*1.4（4小時）", portion: true, halves: 0, mins: 0, lblWhole: "使用全部", lblHalf: "使用一半",
         eat: (f) => { gameState.stress = Math.max(0, gameState.stress - 10 * f); gameState.hydration = Math.min(100, gameState.hydration + 20 * f); SoundFX.playDrink(); addSpeedBuff(1.4, 240 * f);
           showToast(`喝下${f === 1 ? '整杯' : '一半'}Serenbucks！壓力 -${10 * f}，水分 +${20 * f}%，移動速度 ×1.4（${f === 1 ? 4 : 2} 小時）`); } },
+      { id: "hand_cream", name: "🧴 香香的護手霜", desc: "洗手洗到龜裂，擦一下香香的心情就好多了。壓力-8（一條可用 3 次）", count: 0, unitCount: 3,
+        effect: () => { gameState.stress = Math.max(0, gameState.stress - 8); SoundFX.playClick();
+          showToast("擠一點香香的護手霜，搓一搓……壓力 -8。好像又可以再撐一下了。", 4000); } },
       { id: "bento", name: "🍗 外送的雞腿便當", desc: "這才是給人吃的，消耗30分鐘體力+70、水分-20，吃完會糖暈", portion: true, halves: 0,
         eat: (f) => { gameState.stamina = Math.min(100, gameState.stamina + 70 * f); gameState.hydration = Math.max(0, gameState.hydration - 20 * f); SoundFX.playDrink();
           const sleepy = mealSleepy(f);
@@ -8693,7 +8929,8 @@
       { id: 'F_HYPO',     kind: 'fail', name: '急性低血糖腦死', match: /急性低血糖腦死/ },
       { id: 'F_HHS',      kind: 'fail', name: '超高血糖高滲透壓休克', match: /超高血糖/ },
       { id: 'F_PULM',     kind: 'fail', name: '急性肺水腫呼吸衰竭', match: /急性肺水腫呼吸衰竭/ },
-      { id: 'F_INTUBATE', kind: 'fail', name: '未及時插管窒息', match: /未及時插管/ }
+      { id: 'F_INTUBATE', kind: 'fail', name: '未及時插管窒息', match: /未及時插管/ },
+      { id: 'F_ICH',      kind: 'fail', name: '顱內出血延誤處置', match: /顱內出血延誤/ }
     ];
     const ACHIEVEMENTS = [
       { id: 'A_FIRST',   icon: '🩺', name: '新手報到',     desc: '完成（或結束）第 1 個班',            check: c => c.col.stats.played >= 1 },
@@ -8721,17 +8958,20 @@
       { id: 'A_CAT_OTH',   icon: '🧪', name: '冷門實體瘤專家', desc: '照護過所有泌尿、骨與其他實體腫瘤個案', check: c => caredAllIn(c.col, 'other_solid') },
       { id: 'A_CAT_SOLID', icon: '🏥', name: '實體腫瘤通才',   desc: '照護過所有實體腫瘤個案',             check: c => caredAllIn(c.col, 'solid') },
       { id: 'A_SHIFT10', icon: '🧑‍⚕️', name: '病房老鳥',     desc: '累計值班 10 個班',                   check: c => c.col.stats.played >= 10 },
-      { id: 'A_SHIFT30', icon: '🪑', name: '常駐員工',     desc: '累計值班 30 個班',                   check: c => c.col.stats.played >= 30 }
+      { id: 'A_SHIFT30', icon: '🪑', name: '常駐員工',     desc: '累計值班 30 個班',                   check: c => c.col.stats.played >= 30 },
+      { id: 'A_CARD1',   icon: '💌', name: '第一張感謝卡', desc: '收到第 1 張家屬感謝卡',              check: c => (c.col.stats.cards || 0) >= 1 },
+      { id: 'A_CARD10',  icon: '📮', name: '感謝卡收藏家', desc: '累計收到 10 張家屬感謝卡',           check: c => (c.col.stats.cards || 0) >= 10 },
+      { id: 'A_CARD30',  icon: '🗄️', name: '置物櫃貼滿了', desc: '累計收到 30 張家屬感謝卡',           check: c => (c.col.stats.cards || 0) >= 30 }
     ];
     const COLLECTION_KEY = 'ward24_collection';
-    function emptyCollection() { return { v: 1, endings: {}, ach: {}, cared: {}, stats: { played: 0, cleared: 0, clearedBy: {}, deaths: 0 } }; }
+    function emptyCollection() { return { v: 1, endings: {}, ach: {}, cared: {}, cards: [], stats: { played: 0, cleared: 0, clearedBy: {}, deaths: 0, cards: 0 } }; }
     function loadCollection() {
       try {
         const raw = localStorage.getItem(COLLECTION_KEY);
         if (!raw) return emptyCollection();
         const c = JSON.parse(raw);
         const e = emptyCollection();
-        return { v: 1, endings: c.endings || {}, ach: c.ach || {}, cared: c.cared || {}, stats: Object.assign(e.stats, c.stats || {}) };
+        return { v: 1, endings: c.endings || {}, ach: c.ach || {}, cared: c.cared || {}, cards: c.cards || [], stats: Object.assign(e.stats, c.stats || {}) };
       } catch (err) { return emptyCollection(); }
     }
     function saveCollection(col) { try { localStorage.setItem(COLLECTION_KEY, JSON.stringify(col)); } catch (err) {} }
@@ -8771,6 +9011,9 @@
         const sh = Object.assign({}, c0.shifts || {}); sh[gameState.currentShift] = (sh[gameState.currentShift] || 0) + 1;
         col.cared[id] = { n: c0.n + 1, first: c0.first || new Date().toLocaleDateString('zh-TW'), shifts: sh };
       });
+      // 感謝卡
+      const newCards = awardThankCards(isFailure);
+      if (newCards.length) { col.cards = newCards.concat(col.cards || []).slice(0, 200); col.stats.cards = (col.stats.cards || 0) + newCards.length; }
       const newAch = [];
       ACHIEVEMENTS.forEach(a => {
         if (col.ach[a.id]) return;
@@ -8778,7 +9021,7 @@
         if (ok) { col.ach[a.id] = new Date().toLocaleDateString('zh-TW'); newAch.push(a); }
       });
       saveCollection(col);
-      return { ending, isNewEnding, newAch, newCared, col };
+      return { ending, isNewEnding, newAch, newCared, newCards, col };
     }
     function showRunUnlocks(info) {
       const el = document.getElementById('report-unlock'); if (!el) return;
@@ -8788,6 +9031,7 @@
       lines.push(info.isNewEnding
         ? `<div style="color:#fbbf24; font-weight:800;">🆕 新結局解鎖：${info.ending.name}（${have}/${Math.max(known, have)}）</div>`
         : `<div style="color:#94a3b8;">結局圖鑑 ${have}/${Math.max(known, have)}（此結局已收錄）</div>`);
+      (info.newCards || []).forEach(c => lines.push(`<div style="color:#f9a8d4; font-weight:800;">💌 收到 ${c.room} 床 ${c.name} 家屬的感謝卡：「${c.text}」（累計 ${info.col.stats.cards} 張）</div>`));
       info.newAch.forEach(a => lines.push(`<div style="color:#c084fc; font-weight:800;">🏅 新稱號：${a.icon} ${a.name} — ${a.desc}</div>`));
       if (info.newCared && info.newCared.length) lines.push(`<div style="color:#6ee7b7; font-weight:800;">📂 新解鎖個案病歷：${info.newCared.map(p => p.name).join('、')}（${Object.keys(info.col.cared).length}/${PATIENT_POOL.length}）</div>`);
       el.innerHTML = lines.join('');
@@ -8853,6 +9097,13 @@
         `<div style="font-size:12px; font-weight:800; color:#6ee7b7; margin-bottom:6px;">🏠 平安下班結局（${cnt('ok')}）</div><div style="${grid}">${endHtml('ok')}</div>` +
         `<div style="font-size:12px; font-weight:800; color:#fca5a5; margin-bottom:6px;">💥 意外結局（${cnt('fail')}）</div><div style="${grid}">${endHtml('fail')}</div>`;
 
+      // 感謝卡
+      const cards = col.cards || [];
+      panel('cards').innerHTML = cards.length
+        ? `<div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">交班成功、某床的判斷全部選對時，那床家屬會寫感謝卡給你。累計 ${st.cards || cards.length} 張。</div><div style="${grid}">` +
+          cards.map(c => `<div style="background:#fff7ed; color:#7c2d12; border:1px solid #fdba74; border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.6;"><div style="font-weight:800;">💌 給 ${c.to || '護理師'}</div><div style="margin:4px 0;">「${c.text}」</div><div style="font-size:11.5px; color:#9a3412; text-align:right;">—— ${c.room} 床 ${c.name} 的家屬｜${c.date}</div></div>`).join('') + '</div>'
+        : '<div style="color:#94a3b8; font-size:13px; padding:12px;">還沒有收到感謝卡。交班成功、某床的關鍵判斷全部選對（✅），那床家屬就可能寫卡片給你。</div>';
+
       // 個案
       renderPatientArchive();
 
@@ -8861,6 +9112,7 @@
       setLabel('patients', `📂 個案 ${caredN}/${PATIENT_POOL.length}`);
       setLabel('endings', `📕 結局 ${list.filter(e => col.endings[e.id]).length}/${list.length}`);
       setLabel('ach', `🏅 稱號 ${got}/${ACHIEVEMENTS.length}`);
+      setLabel('cards', `💌 感謝卡 ${(col.cards || []).length}`);
     }
     let _collResetArmed = false;
     function resetCollection() {
@@ -8934,7 +9186,7 @@
       day: '☀️ 白班：管路類的常規在班內完成就好，有空再去做，給藥、翻身、量 V/S 這些先去做。',
       evening: '🌆 小夜：很忙，記得自己帶水和零食，不要餓到了。',
       night: '🌙 大夜：天亮會有一波給藥、偷 I/O 潮，記得要留咖啡喝，不然注意力不集中會下不了班。',
-      intern: '🎓 實習：今天我全程跟著你，你先顧好這 4 床，遇到重要的事我會在旁邊提醒你。'
+      intern: '🎓 實習：今天我全程跟著你，你先顧好這4床，遇到重要的事我會在旁邊提醒你。'
     };
     let _tipsThenShop = false;
     function openSeniorTips(thenShop) {
@@ -8957,8 +9209,8 @@
 
     /* ===== 上班前道具購買 ===== */
     const SHOP_INCOME = { day: 1343, evening: 1943, night: 2343, intern: 1343 };   // 實習班薪水同白班   // 各班起始金額＝當班薪水
-    const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145 };
-    const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2 };   // 每樣道具購買上限（未列者不限）
+    const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145, hand_cream: 150 };
+    const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2, hand_cream: 1 };   // 每樣道具購買上限（未列者不限）
     let shopCart = {}, shopLoadout = {}, shopLeft = null;
     function shopSpent() { return Object.keys(shopCart).reduce((a, k) => a + (shopCart[k] || 0) * (SHOP_PRICE[k] || 0), 0); }
     function renderShop() {
@@ -9034,7 +9286,7 @@
        GAME INITIALIZATION: 解耦時間，由個案劇情與機率驅動
        ======================================================== */
     function initGameByShift(shift) {
-      backpack.forEach(i => { if (i.portion) i.halves = (shopLoadout[i.id] || 0) * (i.unitHalves || 2); else i.count = (shopLoadout[i.id] || 0); });
+      backpack.forEach(i => { if (i.portion) i.halves = (shopLoadout[i.id] || 0) * (i.unitHalves || 2); else i.count = (shopLoadout[i.id] || 0) * (i.unitCount || 1); });
       gameState.recordExtra = 0; gameState.bentoHalves = 0; gameState.pineapple = false; gameState.speedBuffs = [];   // 道具改為上班前自行購買
 
       const shuffled = [...PATIENT_POOL].sort(() => 0.5 - Math.random());
@@ -9241,6 +9493,25 @@
         timedCandidates.push({ time: t, patient: WARD_PATIENT, data: resolved });
       });
 
+      // 新增事件排程：每班各自擲骰，抽一位病人（[開始, 結束, 機率]；大夜時間 00:00=0）
+      const pickPt = () => { const al = gameState.activePatients.filter(x => !x.isDead && !x.isDischarged); return al[Math.floor(Math.random() * al.length)]; };
+      EXTRA_EVENT_SCHEDULE.forEach(it => {
+        const w = it[shift]; if (!w) return;
+        const a = parseClock(w[0]), b = parseClock(w[1]); if (a === null || b === null) return;
+        const t = a + Math.floor(Math.random() * (b - a + 1)), pt = pickPt(); if (!pt) return;
+        const d = resolveEventFromTemplate({ eventId: it.eventId, id: `${it.eventId}_${pt.assignedRoom}_T${t}`, probability: w[2] }, pt);
+        if (d) timedCandidates.push({ time: t, patient: pt, data: d });
+      });
+      // 呼叫鈴（可用對講機處理）：每班固定幾次
+      const callN = gameState.isIntern ? 1 : (CALLBELL_PER_SHIFT[shift] || 0);
+      for (let i = 0; i < callN; i++) {
+        const pt = pickPt(); if (!pt) break;
+        const t = startTime + 30 + Math.floor(Math.random() * Math.max(1, endTime - startTime - 90));
+        const eid = CALLBELL_IDS[Math.floor(Math.random() * CALLBELL_IDS.length)];
+        const d = resolveEventFromTemplate({ eventId: eid, id: `${eid}_${pt.assignedRoom}_T${t}`, probability: 1 }, pt);
+        if (d) { d.callbell = true; timedCandidates.push({ time: t, patient: pt, data: d }); }
+      }
+
       // 實習班固定教學點：10:00 量 VS 發現發燒、13:30 中性球低下發燒（突發），讓學姊有機會帶一次
       if (gameState.isIntern) {
         const ps = [...gameState.activePatients].sort(() => Math.random() - 0.5);
@@ -9367,7 +9638,11 @@
       EMERGENT_BEDSORE: "🚨 杯叟", EMERGENT_OCCLUSION: "🚨 管路堵塞", EMERGENT_NEUTROPENIC_FEVER: "🚨 中性球低下發燒",
       EMERGENT_CRITICAL_HYPOGLYCEMIA: "🚨 低血糖昏迷", EMERGENT_CRITICAL_HYPERGLYCEMIA: "🚨 超高血糖",
       EMERGENT_CRITICAL_RESPIRATORY_FAILURE: "🚨 呼吸衰竭", EMERGENT_CRITICAL_ON_ENDO_TUBE: "🚨 緊急插管",
-      EMERGENT_VITAL_DYSPNEA: "🚨 呼吸喘", EMERGENT_VITAL_ARREST: "🚨 Code Blue"
+      EMERGENT_VITAL_DYSPNEA: "🚨 呼吸喘", EMERGENT_VITAL_ARREST: "🚨 Code Blue",
+      SPECIAL_CHEMO: "💉 化療", SPECIAL_ELOPEMENT: "🏃 病人不見了", SPECIAL_FALL: "🤕 跌倒",
+      SPECIAL_NIGHT_INSOMNIA: "😵 睡不著", SPECIAL_NIGHT_PAIN: "😣 爆發痛",
+      CALL_AC: "🔔 冷氣好冷", CALL_URINAL: "🔔 要尿壺", CALL_IV_DONE: "🔔 點滴滴完", CALL_CHEST: "🔔 胸口悶", CALL_ASK_TIME: "🔔 問換藥時間",
+      EMERGENT_CHEMO_EXTRAVASATION: "🚨 化療外滲", EMERGENT_FAMILY_IHCA: "🚨 家屬倒地", EMERGENT_ICH: "🚨 顱內出血", EMERGENT_NIGHT_DELIRIUM: "🚨 躁動拉管"
     };
     function eventBadgeName(d) {
       const id = String(d.id || '');
@@ -10246,6 +10521,10 @@
         currentOptions = evObj._perm.map(i => currentOptions[i]);
       }
 
+      if (gameState._intercom) {   // 對講機：只顯示能遠端處理的選項
+        currentOptions = currentOptions.filter(o => o.remote).concat([{ text: '走過去床邊再處理（關閉對講機）', time: 0, stress: 0, stamina: 0, hydration: 0, records: 0, safety: 0, favor: 0, defer: true }]);
+        document.getElementById("event-bed-tag").innerText = `📞 對講機 → 病房 ${p.assignedRoom} (${p.name})`;
+      }
       gameState._shownOptions = currentOptions;   // 目前視窗顯示的選項（測試／除錯用）
       currentOptions.forEach((opt, idx) => {
         let isDisabled = opt.disabled || false;
@@ -10334,6 +10613,7 @@
       else if (kk === 'r') writeRecordAction();
       else if (kk === 's') walkToStation();
       else if (kk === 'i') openItemModal();
+      else if (kk === 'c') openIntercom();
     });
 
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
@@ -10350,7 +10630,7 @@
       { key: 'K', val: () => 6.1 + Math.random() * 0.8, rule: 'K ≥ 6.0 mmol/L', name: '高血鉀', follow: 'SPECIAL_VITAL_BRADY' },
       { key: 'K', val: () => 2.2 + Math.random() * 0.5, rule: 'K ≤ 2.8 mmol/L', name: '低血鉀', follow: 'SPECIAL_VITAL_TACHY' },
       { key: 'Hb', val: () => 5.6 + Math.random() * 1.2, rule: 'Hb ≤ 7.0 g/dL', name: '重度貧血', follow: 'SPECIAL_VITAL_HYPOTN' },
-      { key: 'PLT', val: () => 4 + Math.random() * 12, rule: 'PLT ≤ 20 ×10³/μL', name: '血小板過低', follow: 'SPECIAL_VITAL_HYPOTN' },
+      { key: 'PLT', val: () => 4 + Math.random() * 12, rule: 'PLT ≤ 20 ×10³/μL', name: '血小板過低', follow: 'EMERGENT_ICH' },
       { key: 'ANC', val: () => 50 + Math.random() * 400, rule: 'ANC < 500 /μL', name: '嚴重嗜中性球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' }
     ];
     const LAB_LEVEL = { N: ['正常', ''], H: ['偏高', 'lab-H'], L: ['偏低', 'lab-L'], HH: ['極高', 'lab-HH'], LL: ['極低', 'lab-LL'] };
@@ -10560,32 +10840,122 @@
         C: '沒有呼吸心跳必須立刻 CPR，不能走開。' }
     };
 
+
+    /* ===== 新增事件排程（每班擲骰一次）：[開始, 結束, 機率]；實習班用白班設定，突發另乘 0.4 ===== */
+    const EXTRA_EVENT_SCHEDULE = [
+      { eventId: 'SPECIAL_CHEMO',            day: ['09:30', '14:00', 0.6], evening: ['17:00', '21:00', 0.4] },
+      { eventId: 'SPECIAL_ELOPEMENT',        day: ['10:00', '15:00', 0.12], evening: ['17:00', '22:00', 0.15] },
+      { eventId: 'EMERGENT_FAMILY_IHCA',     day: ['09:00', '15:00', 0.04], evening: ['17:00', '22:00', 0.04], night: ['00:30', '06:00', 0.02] },
+      { eventId: 'EMERGENT_ICH',             day: ['09:00', '15:00', 0.03], evening: ['17:00', '22:00', 0.03], night: ['00:30', '06:00', 0.03] },
+      { eventId: 'SPECIAL_NIGHT_INSOMNIA',   night: ['00:30', '04:00', 0.6] },
+      { eventId: 'SPECIAL_NIGHT_PAIN',       night: ['01:00', '05:00', 0.45] },
+      { eventId: 'EMERGENT_NIGHT_DELIRIUM',  night: ['01:00', '05:00', 0.25] },
+      { eventId: 'SPECIAL_FALL',             night: ['02:00', '05:30', 0.15] }
+    ];
+    const CALLBELL_IDS = ['CALL_AC', 'CALL_URINAL', 'CALL_IV_DONE', 'CALL_CHEST', 'CALL_ASK_TIME'];
+    const CALLBELL_PER_SHIFT = { day: 2, evening: 3, night: 2 };
+
+    /* ===== 對講機：在護理站處理呼叫鈴，不用走過去（只有標示 remote 的選項能用對講機處理） ===== */
+    function callbellPending() { return gameState.pendingEvents.filter(e => e.data && e.data.callbell && e.patient && !e.patient.isWard); }
+    function openIntercom() { doAtStation('用對講機', openIntercomNow); }
+    function openIntercomNow() {
+      if (gameState.isPaused || gameState.isGameOver) return;
+      const list = callbellPending(), box = document.getElementById('intercom-list');
+      if (!list.length) { showToast('📞 目前沒有病房按呼叫鈴。'); return; }
+      box.innerHTML = '';
+      list.forEach(ev => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'intercom-item';
+        const rem = alarmRemain(ev);
+        b.innerHTML = `<span><b>${ev.patient.assignedRoom}</b>${ev.patient.name}｜${String(ev.data.title).replace('呼叫鈴：', '')}</span><span class="ic-r">剩 ${rem} 分</span>`;
+        b.onclick = () => { closeModal('intercom-modal'); gameState._intercom = true; triggerEventModal(ev); };
+        box.appendChild(b);
+      });
+      openModal('intercom-modal');
+    }
+    function updateIntercomBtn() {
+      const b = document.getElementById('intercom-btn'); if (!b) return;
+      const n = callbellPending().length;
+      b.innerText = n ? `📞 對講機（${n}）` : '📞 對講機';
+      b.classList.toggle('intercom-ringing', n > 0);
+      // 畫面角落的浮動按鈕：有人按鈴時出現（手機上護理站按鈕可能在畫面外）
+      const vp = document.getElementById('viewport'); if (!vp) return;
+      let f = document.getElementById('intercom-fab');
+      if (!f) { f = document.createElement('button'); f.type = 'button'; f.id = 'intercom-fab'; f.className = 'intercom-fab'; f.onclick = (e) => { e.stopPropagation(); openIntercom(); }; vp.appendChild(f); }
+      f.innerText = `📞 ${n} 床按鈴`;
+      f.style.display = (n && !gameState.isGameOver) ? '' : 'none';
+    }
+
+    /* ===== 時鐘里程碑：整點提示（只是提醒，不影響數值） ===== */
+    const CLOCK_MILESTONES = {
+      day: [[480, '☀️ 08:00 早班給藥時間'], [540, '🩺 09:00 醫師查房，病人可能會問病情'], [720, '🍱 12:00 午餐時間，找空檔吃點東西'], [900, '⏰ 15:00 離交班剩 1 小時']],
+      evening: [[1080, '🍱 18:00 晚餐時間，記得吃點東西'], [1200, '👋 20:00 探病時間結束'], [1260, '💊 21:00 睡前給藥時間'], [1320, '🌙 22:00 熄燈時間'], [1380, '⏰ 23:00 離交班剩 1 小時']],
+      night: [[120, '🌙 02:00 夜深了，記得巡房'], [300, '🌅 05:00 天快亮了，準備早上給藥和偷 I/O'], [420, '⏰ 07:00 離交班剩 1 小時']]
+    };
+    function checkClockMilestones(t0, t1) {
+      const ms = CLOCK_MILESTONES[gameState.currentShift] || [];
+      const hit = ms.filter(([t]) => t > t0 && t <= t1).pop();
+      if (!hit) return;
+      const vp = document.getElementById('viewport'); if (!vp) return;
+      let el = document.getElementById('clock-chip');
+      if (!el) { el = document.createElement('div'); el.id = 'clock-chip'; el.className = 'clock-chip'; vp.appendChild(el); }
+      el.innerText = hit[1];
+      el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      try { SoundFX.playDingDong(); } catch (e) { }
+    }
+
+    /* ===== 感謝卡：交班成功、病人安全 ≥80，且某床的判斷全部選對（✅）→ 那床家屬送感謝卡（每班最多 2 張） ===== */
+    const THANK_CARD_TEXTS = [
+      '謝謝你那天一直來看他好幾次，他說護理師的手很溫暖。',
+      '謝謝護理師耐心跟我們解釋，我們終於比較不害怕了。',
+      '他說你是他住院以來最喜歡的護理師。',
+      '謝謝你在他最不舒服的時候第一時間趕到，辛苦了！',
+      '謝謝你把我們家人當自己家人照顧，祝你每天都準時下班。',
+      '謝謝你發現得早，醫師說幸好處理得快。',
+      '謝謝你每次都先問他痛不痛，這對我們很重要。',
+      '辛苦了！也要記得喝水吃飯，照顧好自己。',
+      '我們都看到你一直在跑，謝謝你沒有放下我們。',
+      '謝謝你，讓住院的日子沒有那麼難熬。'
+    ];
+    function awardThankCards(isFailure) {
+      if (isFailure || gameState.patientSafety < 80) return [];
+      const log = (gameState.decisionLog || []).filter(x => x.cat !== 'routine' && x.cat !== 'ward' && x.grade !== 'na' && x.room && x.room !== '護理站');
+      const byRoom = {}; log.forEach(x => (byRoom[x.room] = byRoom[x.room] || []).push(x));
+      const pts = Object.keys(byRoom).filter(r => byRoom[r].every(x => x.grade === 'best'))
+        .map(r => gameState.activePatients.find(p => p.assignedRoom === r)).filter(p => p && !p.isDead)
+        .sort(() => Math.random() - 0.5).slice(0, 2);
+      const used = new Set();
+      return pts.map(p => {
+        let i; do { i = Math.floor(Math.random() * THANK_CARD_TEXTS.length); } while (used.has(i) && used.size < THANK_CARD_TEXTS.length);
+        used.add(i);
+        return { room: p.assignedRoom, name: p.name, text: THANK_CARD_TEXTS[i], to: gameState.playerName, date: new Date().toLocaleDateString('zh-TW') };
+      });
+    }
     /* ===== 實習班（新人試用期）：白班 08:00、只顧 4 床、學姊隨行提醒；突發較少、體力水分掉得慢、交班焦慮減半 ===== */
     const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, hydrationMult: 0.6, anxietyMult: 0.5 };
     const INTERN_TIPS = {
       start: '今天我跟著你，你先顧 003、005、012、013 這 4 床就好。房卡亮起來就走過去，有事我會在旁邊提醒你。',
       cat: {
-        routine: '藍框是常規，像給藥、量 V/S，走到床邊就會做完。到點後 2 小時內做完就好，不用急但也不要拖。',
+        routine: '藍框是常規，像給藥、量 V/S，走到床邊就會做完。到點後時間內做完就好，不用急但也不要拖。',
         special: '橘框是特殊處置，要你判斷。不確定的時候，先評估、再通知醫師，通常不會錯。',
         emergent: '紅框！突發事件拖太久會出人命，手邊的事先放著，馬上跑過去。',
         ward: '病房事件要回護理站處理，家屬等太久會暴走。'
       },
       ev: {
         EMERGENT_NEUTROPENIC_FEVER: '7+3 的病人發燒要先幹嘛？先抽雙套血培養再上抗生素，順序搞錯你就完了。',
-        SPECIAL_VITAL_FEVER: '血腫科病人發燒都當成感染處理：通知醫師、先抽雙套血培養，再盡快上抗生素。',
+        SPECIAL_VITAL_FEVER: '血腫科病人發燒都要考慮感染：通知醫師、先抽雙套血培養，再盡快上抗生素。',
         SPECIAL_VITAL_HTN: '血壓高先別急著給藥，讓他休息、換手再量一次，問問有沒有頭痛、視力模糊。',
         SPECIAL_VITAL_HYPOTN: '血壓低先讓他躺平、腳抬高，不要叫他坐起來，然後找原因、通知醫師。',
         SPECIAL_VITAL_TACHY: '心跳快先找原因：有沒有發燒、痛、出血、剛剛有沒有走動，評估完再通知醫師。',
-        SPECIAL_VITAL_BRADY: '心跳 38 很危險，先接 monitor、通知醫師，急救車推過來備著。',
-        SPECIAL_HYPOGLYCEMIA: '低血糖記得 15-15：先給 15g 糖，15 分鐘後一定要複測。',
+        SPECIAL_VITAL_BRADY: '心跳38很危險，先接 monitor、通知醫師，急救車推過來備著。',
+        SPECIAL_HYPOGLYCEMIA: '低血糖記得15-15：先給15g糖，15 分鐘後一定要複測。',
         SPECIAL_HYPERGLYCEMIA: '醫囑看起來怪怪的就先打給醫師確認，不要照打。',
-        SPECIAL_TRANSFUSION: '輸血一定要兩個人核對，前 15 分鐘慢慢滴、在旁邊看有沒有輸血反應。',
+        SPECIAL_TRANSFUSION: '輸血一定要兩個人核對，前15分鐘慢慢滴、看有沒有輸血反應。',
         SPECIAL_BLOOD_EXPIRED: '先看血袋效期，過期的一律退回血庫，不能輸。',
-        LAB_: '看判讀那一欄：極高、極低要馬上打給醫師；只有偏高、偏低報告醫師就好；全部正常記錄就好。',
-        OCCLUSION_: '點滴叫了先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
-        EMERGENT_OCCLUSION: '點滴叫了先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
+        LAB_: '看判讀那一欄：極高、極低要馬上打給醫師及處置；偏高、偏低報告醫師請他評估就好；全部正常就不用特別報了。',
+        OCCLUSION_: 'Pump叫先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
+        EMERGENT_OCCLUSION: 'Pump叫先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
         BEDSORE_: '發現壓傷先處理傷口、拍照通報，不要跟家屬吵。',
-        EMERGENT_VITAL_ARREST: '沒呼吸沒心跳！原地呼救、開始壓胸，不要跑走找人。',
+        EMERGENT_VITAL_ARREST: '沒呼吸沒心跳！原地呼救、開始壓胸，不要跑去找人，病人會死。',
         EMERGENT_VITAL_DYSPNEA: '喘又血氧低：床頭抬高、給氧、通知醫師，不要只把氧氣開大就走。'
       },
       water: '你嘴唇都乾了，先回護理站喝口水。',
@@ -10703,6 +11073,7 @@
       const timeCost = (typeof opt.time === 'number') ? opt.time : 5;   // 選項標示 +0 分鐘就真的是 0 分鐘（舊寫法 0 會被當成 5）
       const _wasWard = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'ward');
       const _wasEmergent = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'emergent');
+      const _wasIntercom = !!gameState._intercom; gameState._intercom = false;
       const p = (gameState.activeEvent && !gameState.activeEvent.patient.isWard) ? gameState.activeEvent.patient : null;
       const roomNum = p ? p.assignedRoom : null;
       const roomState = roomNum ? gameState.roomBloodState[roomNum] : null;
@@ -10713,7 +11084,7 @@
         document.getElementById("event-overlay").style.display = "none";
         gameState.activeEvent = null;
         gameState.isPaused = false;
-        showToast(_wasWard ? "先放著，病房事件仍保留（回護理站再處理）。" : "先去處理別床，這邊的事件仍保留（倒數持續）。");
+        showToast(_wasIntercom ? "📞 掛上對講機，這床的呼叫鈴仍保留。" : (_wasWard ? "先放著，病房事件仍保留（回護理站再處理）。" : "先去處理別床，這邊的事件仍保留（倒數持續）。"));
         updateRoomCardsVisualHierarchy();
         updateHUD();
         return;
@@ -11052,7 +11423,9 @@
 
       // 若該房仍有未完成事件（>=1 項），重新開啟選單；若全數完成則徹底解除暫停
       const remainingAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
-      if (_wasWard) {
+      if (_wasIntercom) {
+        gameState.isPaused = false;   // 對講機處理完：人還在護理站
+      } else if (_wasWard) {
         const more = wardPending();
         if (more.length) triggerEventModal(more[0]); else gameState.isPaused = false;
       } else if (remainingAlarms.length >= 1) {
@@ -11128,6 +11501,7 @@
     function advanceTimeStep(minutes) {
       const _t0 = gameState.currentTime;
       gameState.currentTime += minutes;
+      try { checkClockMilestones(_t0, gameState.currentTime); } catch (e) { }
       runAdmissionDrawsBetween(_t0, gameState.currentTime);   // 入院抽選（每 30 分鐘）
       fireDueScheduledEvents(false);   // 個案排程：到點觸發
       processDelayedEvents();          // 事件延伸：到點觸發
@@ -11659,7 +12033,7 @@
 
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
-      try { applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); } catch (e) { }
+      try { applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); updateIntercomBtn(); } catch (e) { }
       if (gameState.isIntern) { try { internStatNag(); } catch (e) { } }
       const h = Math.floor(gameState.currentTime / 60) % 24;
       const m = gameState.currentTime % 60;

@@ -10331,7 +10331,7 @@
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
        偏高、偏低 → 報告醫師即可；極高、極低（危急值）→ 需馬上通報並處理。
        門檻為遊戲設定（各院規定不同）。危急值沒馬上處理 → 之後可能演變成相關急症／特殊事件。 */
-    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 8, from: 540, to: 840 }, intern: { n: 1, from: 570, to: 780 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班抽血班 8 份
+    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 3, from: 540, to: 840 }, intern: { n: 1, from: 570, to: 780 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班（含抽血班）3 份
     const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向

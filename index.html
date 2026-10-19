@@ -2512,11 +2512,11 @@
       "id": "SPECIAL_HYPERGLYCEMIA",
       "category": "special",
       "title": "高血糖處置 (BS: 290 mg/dL)",
-      "desc": "病患感到頭暈、視力模糊，測量血糖顯示290mg/dL，有PRN醫囑：RI 100U(備註：高血糖請聯繫醫師)",
+      "desc": "病患感到頭暈、視力模糊，測量血糖顯示290mg/dL，有PRN醫囑：RI 1000U(備註：高血糖請聯繫醫師)",
       "options": [
         {
           "keyTag": "A",
-          "text": "依照醫囑施打RI：100U（消耗3分鐘，15分鐘後進入「病人低血糖死亡」結局）",
+          "text": "依照醫囑施打RI：1000U（消耗3分鐘，15分鐘後進入「病人低血糖死亡」結局）",
           "time": 3,
           "stress": 5,
           "stamina": -2,
@@ -3182,15 +3182,15 @@
         "deadlineMinutes": 120,
         "onExpire": { "event": "EMERGENT_VITAL_ARREST" },
         "options": [
-          { "keyTag": "A", "text": "評估體溫、疼痛、出血、I/O，通知醫師", "time": 10, "stress": 0, "stamina": -3, "hydration": 0, "records": 2, "safety": 6, "favor": 0,
+          { "keyTag": "A", "text": "詢問30分內有無運動緊張等影響因素，評估體溫、疼痛、出血、I/O，通知醫師", "time": 10, "stress": 0, "stamina": -3, "hydration": 0, "records": 2, "safety": 6, "favor": 0,
             "hint": "醫師已知並執行 12 導程，告知給予增加輸液，20 分後新增常規：輸液事件",
             "outcomes": [{ "event": "ROUTINE_INFUSION", "delayMin": 20 }] },
-          { "keyTag": "B", "text": "請病人深呼吸放鬆，15 分鐘後再量", "time": 2, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -5, "favor": 0,
+          { "keyTag": "B", "text": "應該只是緊張，請病人深呼吸放鬆，15分鐘後再量", "time": 2, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -5, "favor": 0,
             "outcomes": [
               { "p": 0.40, "event": "SPECIAL_VITAL_TACHY", "delayMin": 15, "toast": "15 分鐘後病人仍然心悸……" },
               { "p": 0.50, "event": "ROUTINE_VITAL_SIGN", "delayMin": 15 },
               { "p": 0.15, "event": "EMERGENT_VITAL_ARREST", "delayMin": 30 } ] },
-          { "keyTag": "C", "text": "可能是緊張，不用理", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -10, "favor": 0,
+          { "keyTag": "C", "text": "138也還好，不用理", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -10, "favor": 0,
             "outcomes": [{ "p": 0.20, "event": "EMERGENT_VITAL_ARREST", "delayMin": 30 }] }
         ]
       },
@@ -3236,7 +3236,7 @@
         "options": [
           { "keyTag": "A", "text": "雙人核對血袋與病人身分，前 15 分鐘慢速輸注並密切監測 VS", "time": 15, "stress": 0, "stamina": -3, "hydration": 0, "records": 2, "safety": 8, "favor": 0,
             "outcomes": [{ "p": 0.10, "event": "SPECIAL_VITAL_FEVER", "delayMin": 30, "toast": "輸血中病人突然發冷發燒（疑似輸血反應）" }] },
-          { "keyTag": "B", "text": "自己快速核對一下，直接調快速度輸注", "time": 5, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -10, "favor": 0,
+          { "keyTag": "B", "text": "自己核對OK就掛，學姊都很忙，直接調快速度輸注趕快趕在交班前滴完", "time": 5, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": -10, "favor": 0,
             "outcomes": [
               { "p": 0.40, "event": "SPECIAL_VITAL_FEVER", "delayMin": 15, "toast": "輸血中病人突然發冷發燒（疑似輸血反應）" },
               { "p": 0.15, "event": "EMERGENT_VITAL_DYSPNEA", "delayMin": 20 } ] },
@@ -10358,9 +10358,9 @@
       };
       const options = [
         { keyTag: 'A', text: '有極高／極低：立即電話通報醫師危急值，依醫囑馬上處理並完成通報紀錄', time: 5, stress: 3, stamina: -1, records: 1,
-          safety: kind === 'crit' ? 8 : (kind === 'abn' ? -2 : -3), favor: kind === 'crit' ? 0 : -5, hint: H.A[kind] },
+          safety: kind === 'crit' ? 8 : 0, favor: kind === 'crit' ? 0 : -5, hint: H.A[kind] },
         { keyTag: 'B', text: '有偏高／偏低：報告醫師異常數值，寫進護理紀錄、交班時提醒', time: 2, stress: 1, stamina: 0, records: 1,
-          safety: kind === 'crit' ? -6 : (kind === 'abn' ? 4 : -1), favor: kind === 'normal' ? -2 : 0, hint: H.B[kind], outcomes: follow(0.4, 45) },
+          safety: kind === 'crit' ? -6 : (kind === 'abn' ? 4 : 0), favor: kind === 'normal' ? -2 : 0, hint: H.B[kind], outcomes: follow(0.4, 45) },
         { keyTag: 'C', text: '全部正常：記錄報告已看過即可', time: 1, stress: 0, stamina: 0, records: 0,
           safety: kind === 'crit' ? -15 : (kind === 'abn' ? -5 : 3), hint: H.C[kind], outcomes: follow(0.8, 40) }
       ];
@@ -10417,8 +10417,8 @@
         C: '低血糖要馬上補充快速吸收的糖，等院餐太慢，可能惡化成意識不清。',
         D: '通知醫師不算錯，但病人清醒、能吃東西時，護理師可以先依 15-15 法則處理並複測，不用等醫師。' },
       SPECIAL_HYPERGLYCEMIA: {
-        A: 'RI 100U 是明顯不合理的劑量（很可能多打一個 0）。遇到不合理的醫囑要先跟醫師確認，不能照打。',
-        B: '血糖 290 要處理：先聯絡醫師確認胰島素劑量，給藥後依時間複測。',
+        A: 'RI 1000U 是明顯不合理的劑量（1000U是整瓶的劑量）。遇到不合理的醫囑要先跟醫師確認，不能照打。',
+        B: '血糖290要處理：先聯絡醫師確認胰島素劑量，給藥後依時間複測。',
         C: '290 已經偏高，應先通報醫師確認處置，不是單純再觀察。',
         D: '高血糖不能當沒看到，持續偏高會脫水、增加感染風險，嚴重可能進展成高血糖急症。' },
       SPECIAL_IO_OVERLOAD: {
@@ -10432,15 +10432,15 @@
         C: '有在處理，但補液的種類和速度要由醫師開立，先通報醫師才是第一步。',
         D: '只交代口渴再喝水不夠，沒通報補液可能導致低血容休克與急性腎損傷。' },
       EMERGENT_BEDSORE: {
-        A: '指責家屬不會讓傷口變好，還可能引發衝突；定時翻身減壓本來就是護理照護的一部分。',
+        A: '指責家屬不會讓傷口變好，還可能引發衝突；定時翻身減壓是護理照護的一部分。',
         B: '壓傷發現了就要立刻處理和通報，拖延只會讓傷口惡化。',
         C: '二級壓傷要換藥、使用合適的敷料、持續減壓，並拍照通報院內壓傷系統追蹤。',
         D: '可以先處理更緊急的事，但壓傷警報還在，記得回來處理。' },
       BEDSORE_: 'EMERGENT_BEDSORE',
       EMERGENT_OCCLUSION: {
-        A: '確定阻塞時最安全的做法是重新建立管路，不要硬沖。',
-        B: '用空針用力沖管，可能把血栓推進血管造成栓塞，不建議。',
-        C: '先檢查管路有沒有凹折或被壓住是合理的第一步，但確定阻塞後就要重新建立管路。',
+        A: '確定阻塞時最安全的做法是重新建立管路。',
+        B: '有時可能是管路有空氣堵塞，將空氣從滴室排出有可能使管路恢復通暢。',
+        C: '先檢查管路有沒有凹折或被壓住是合理的第一步，確定阻塞後就還是要重新建立管路。',
         D: '把警報靜音、留給下一班，病人的點滴（可能含重要藥物）會一直停著。' },
       OCCLUSION_: 'EMERGENT_OCCLUSION',
       EMERGENT_NEUTROPENIC_FEVER: {
@@ -10448,14 +10448,14 @@
         B: '只用冰枕觀察會延誤抗生素，中性球低下的病人可能很快進展成敗血性休克。' },
       EMERGENT_CRITICAL_HYPOGLYCEMIA: {
         A: '病人意識不清不能由口進食，要立即通知醫師、靜脈推注高濃度葡萄糖（D50W）。',
-        B: '血糖 18 又意識改變是急症，不是累了；延誤可能造成腦部傷害甚至死亡。',
+        B: '血糖18又意識改變是急症，不是累了；延誤可能造成腦部傷害甚至死亡。',
         C: '找學姊幫忙可以，但最重要的是立刻通知醫師、靜脈給糖。',
-        D: '血糖 18 是急症，應該先處理這床。' },
+        D: '血糖18是急症，應該先處理這床。' },
       EMERGENT_CRITICAL_HYPERGLYCEMIA: {
         A: '高血糖高滲透壓狀態（HHS）首要是大量補液矯正脫水，胰島素依醫囑使用，並密切監測血糖。',
         B: '一開始就推胰島素、血糖降太快，可能造成腦水腫；應先補液，胰島素依醫囑給。',
         C: '找學姊可以，但要盡快通知醫師並開始補液。',
-        D: '血糖超過 500 是急症，不能當作吃太飽。' },
+        D: '血糖超過500是急症，不能當作吃太飽。' },
       EMERGENT_CRITICAL_RESPIRATORY_FAILURE: {
         A: '呼吸衰竭要先維持呼吸道（抽痰）、給氧，立即通知醫師並準備插管用物。',
         B: '只調高氧氣，沒有處理痰液阻塞、也沒通知醫師，病人可能窒息。',
@@ -10466,24 +10466,24 @@
         B: '緊急插管是最優先的事，延後可能危及生命。' },
       SPECIAL_VITAL_HTN: {
         A: '血壓偏高先讓病人休息、換手臂（或雙臂）複測，詢問頭痛、視力模糊、胸痛等症狀，並考慮疼痛、焦慮、剛輸血等因素，再通知醫師。',
-        B: '沒有先複測和評估就直接給降壓藥，可能把血壓降太多；血壓異常也要報告醫師。',
+        B: '沒有先複測和評估就直接給降壓藥，可能把血壓降太多；而且血壓異常也要報告醫師。',
         C: '186/104 不能只當作緊張，要複測、評估症狀，確認是不是高血壓急症。' },
       SPECIAL_VITAL_HYPOTN: {
         A: '低血壓要先比對平時血壓、讓病人平躺抬高下肢，找原因（出血、感染、脫水），並通知醫師。',
         B: '低血壓時坐起來可能更暈甚至跌倒，喝水補充也太慢。',
         C: '只通知醫師卻不做初步處置、也不複測，無法掌握病情變化。' },
       SPECIAL_VITAL_TACHY: {
-        A: '心跳過快要找原因：發燒、疼痛、出血、脫水、缺氧等，評估後通知醫師。',
-        B: '深呼吸可以放鬆，但 HR 138 要先評估原因並通知醫師，不能只等 15 分鐘。',
-        C: 'HR 138 不能直接當成緊張，可能是發燒、出血或敗血症的早期徵兆。' },
+        A: '心跳過快要找原因：發燒、疼痛、出血、脫水、缺氧等，評估後通知醫師進行後續處置。',
+        B: '深呼吸可以放鬆，但 HR138要先評估原因並通知醫師，不能只等15分鐘。',
+        C: 'HR 138 可能是發燒、出血或敗血症的早期徵兆。' },
       SPECIAL_VITAL_BRADY: {
         A: 'HR 38 要接上監視器、評估意識與血壓、通知醫師並準備急救車。',
-        B: '心跳 38 不能當成睡著，可能是心律不整或高血鉀，要立即評估。',
+        B: '心跳38不能當成睡著，可能是心律不整或高血鉀，要立即評估。',
         C: '心搏過緩時起身走動可能暈倒跌倒，非常危險。' },
       SPECIAL_VITAL_FEVER: {
         A: '血液腫瘤科病人發燒要當成可能感染：通知醫師、抽雙套血液培養，並盡快給廣效抗生素。',
         B: '冰枕只是降溫，延後報告會延誤抗生素，免疫低下的病人可能很快惡化。',
-        C: '自行給退燒藥會掩蓋發燒，沒通報、沒抽培養會延誤感染的診斷與治療。' },
+        C: '自行給退燒藥掩蓋發燒，沒通報、沒抽培養會延誤感染的診斷與治療，給自己的退燒藥同時違反護理倫理。' },
       SPECIAL_TRANSFUSION: {
         A: '輸血前要雙人核對血袋與病人身分，前 15 分鐘慢速輸注並密切觀察，才能及早發現輸血反應。',
         B: '輸血一定要雙人核對；一開始就調快速度，發生輸血反應時會來不及發現。' },
@@ -10493,7 +10493,7 @@
       EMERGENT_VITAL_DYSPNEA: {
         A: '呼吸喘、血氧低要抬高床頭、給氧、持續監測，通知醫師安排胸部 X 光與動脈血氣分析找原因。',
         B: '只把氧氣開大、沒有找原因也沒通知醫師，病情可能持續惡化。',
-        C: '血氧 86% 是缺氧，不能當成過度換氣。' },
+        C: '血氧86%是缺氧，不能當成過度換氣。' },
       EMERGENT_VITAL_ARREST: {
         A: '發現無呼吸無心跳要立刻呼救、啟動 Code Blue、開始 CPR，並請人推急救車與 AED。',
         B: '離開病人去找醫師會延誤 CPR，每延遲一分鐘存活率都會下降；要原地呼救並立刻壓胸。',
@@ -10679,9 +10679,9 @@
         }, 15000);
       }
 
-      // 事件組：高血糖處置 SPECIAL_HYPERGLYCEMIA (含 RI 100U 致命陷阱)
+      // 事件組：高血糖處置 SPECIAL_HYPERGLYCEMIA (含 RI 1000U 致命陷阱)
       else if (opt.isHyperA) {
-        triggerEndShift(true, "【致命醫療事故】盲目執行 RI 100U 致命劑量醫囑！病患急速陷入重度低血糖休克腦死，護理部立即暫停執照移送法辦！");
+        triggerEndShift(true, "【致命醫療事故】盲目執行 RI 1000U 致命劑量醫囑！病患急速陷入重度低血糖休克腦死，護理部立即暫停執照移送法辦！");
         return;
       } else if (opt.isHyperB) {
         showToast("📞 聯繫醫師確認給予 RI 4U，90 分鐘後將複測血糖。");

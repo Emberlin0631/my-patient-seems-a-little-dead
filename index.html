@@ -3387,6 +3387,15 @@
           { "keyTag": "C", "text": "電話先讓它響，晚點再回（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
         ]
       },
+      "WARD_THANKS_PINEAPPLE": {
+        "id": "WARD_THANKS_PINEAPPLE", "category": "ward",
+        "title": "家屬致謝（鳳梨酥）",
+        "desc": "家屬感謝病房的醫療人員照顧，特別購買兩盒鳳梨酥請大家吃。",
+        "timeCost": 1,
+        "options": [
+          { "keyTag": "A", "text": "收下（獲得 🍍 鳳梨酥 ×1）", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "giveItem": { "id": "pineapple_cake", "n": 1 } }
+        ]
+      },
       "WARD_ER_ADMIT": {
         "id": "WARD_ER_ADMIT", "category": "ward",
         "title": "急診入院通知",
@@ -3399,12 +3408,13 @@
       }
     };
     const WARD_SCHEDULE = (() => {
-      // 每個事件每班最多隨機觸發一次：白班 10%、小夜 6%、大夜 3%（電話禮儀度測試只在白班）
+      // 每個事件每班最多隨機觸發一次：白班 10%、小夜 6%、大夜 3%（電話禮儀度測試只在白班；家屬致謝只在白班、小夜）
       const W = { day: [["08:00", "15:00"], 0.10], evening: [["16:00", "23:00"], 0.06], night: [["00:00", "07:00"], 0.03] };
       const out = [];
-      ["WARD_TV", "WARD_TOILET", "WARD_CLOGGED_TOILET", "WARD_ASK_CONDITION", "WARD_PHONE_ETIQUETTE"].forEach(id => {
+      ["WARD_TV", "WARD_TOILET", "WARD_CLOGGED_TOILET", "WARD_ASK_CONDITION", "WARD_PHONE_ETIQUETTE", "WARD_THANKS_PINEAPPLE"].forEach(id => {
         Object.keys(W).forEach(sh => {
           if (id === "WARD_PHONE_ETIQUETTE" && sh !== "day") return;
+          if (id === "WARD_THANKS_PINEAPPLE" && sh === "night") return;   // 家屬致謝：白班、小夜才會出現
           out.push({ eventId: id, window: W[sh][0], probability: W[sh][1], excludeShifts: ["day", "evening", "night"].filter(x => x !== sh) });
         });
       });
@@ -10400,6 +10410,13 @@
       }
 
       logDecision(opt, p);
+
+      // 選項給道具（例：家屬致謝的鳳梨酥）
+      if (opt.giveItem) {
+        const gi = backpack.find(i => i.id === opt.giveItem.id), n = opt.giveItem.n || 1;
+        if (gi) { if (gi.portion) gi.halves = (gi.halves || 0) + 2 * n; else gi.count = (gi.count || 0) + n;
+          setTimeout(() => showToast(`🎁 獲得 ${gi.name} ×${n}，已放進道具。`, 4000), 50); }
+      }
 
       // 壓力值只由事件決策增減！
       const optionStressDelta = opt.stress || 0;

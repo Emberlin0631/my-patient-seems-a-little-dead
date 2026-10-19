@@ -1152,6 +1152,13 @@
     .vital-danger small { font-weight: 700; opacity: .9; margin-left: 6px; }
     @keyframes vitalFlash { 0% { background: #b91c1c; color: #fff; } 100% { background: #fef2f2; color: #dc2626; } }
     @media (max-width: 700px) { .vital-danger { font-size: 12.5px; padding: 6px 10px; top: 46px; white-space: normal; width: 90%; text-align: center; } }
+    #nurse-img { transition: filter .6s ease; }
+    #nurse-img.mood-stress { filter: sepia(.6) saturate(2.4) hue-rotate(-30deg) drop-shadow(0 0 6px rgba(239,68,68,.9)); }
+    #nurse-img.mood-weak { filter: grayscale(.85) brightness(.88); }
+    #nurse-img.mood-both { filter: grayscale(.5) sepia(.5) saturate(1.8) hue-rotate(-30deg) brightness(.9) drop-shadow(0 0 6px rgba(239,68,68,.9)); }
+    @keyframes alarmShake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-3px,1px); } 40% { transform: translate(3px,-1px); } 60% { transform: translate(-2px,-1px); } 80% { transform: translate(2px,1px); } }
+    .alarm-shake { animation: alarmShake .45s ease-in-out; }
+    @media (prefers-reduced-motion: reduce) { .alarm-shake { animation: none; } #nurse-img { transition: none; } }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
     /* 學姊留言 */
@@ -9263,7 +9270,7 @@
 
       const nurseImg = document.getElementById('nurse-img');
       if (nurseImg) {
-        nurseImg.style.filter = 'none';
+        nurseImg.style.filter = '';
         nurseImg.src = (gameState.playerGender === 'male') ? SPRITES.MALE_FRONT : SPRITES.FRONT;
       }
       const badgeEl = document.getElementById('protagonist-name-badge');
@@ -10141,6 +10148,7 @@
 
       gameState.pendingEvents.push(evObj);
       SoundFX.playEventAlarm(data, category);   // 警報分級
+      if (category === 'emergent') emergentAlarmFx();
 
       updateRoomCardsVisualHierarchy();
 
@@ -11300,6 +11308,27 @@
       if (gameState.stamina < VITAL_FLOOR) gameState.stamina = VITAL_FLOOR;
       if (gameState.hydration < VITAL_FLOOR) gameState.hydration = VITAL_FLOOR;
     }
+    // 主角狀態變色：壓力 ≥70 偏紅；體力或水分 ≤25 偏灰（2D 圖片濾鏡，3D 模型也讀這個）
+    function playerMood() {
+      if (typeof gameState === 'undefined' || gameState.isGameOver) return 'ok';
+      const st = gameState.stress >= 70, wk = gameState.stamina <= 25 || gameState.hydration <= 25;
+      return st && wk ? 'both' : (st ? 'stress' : (wk ? 'weak' : 'ok'));
+    }
+    window.playerMood = playerMood;
+    function updatePlayerMood() {
+      const img = document.getElementById('nurse-img'); if (!img) return;
+      const m = playerMood(), cls = m === 'ok' ? '' : 'mood-' + m;
+      ['mood-stress', 'mood-weak', 'mood-both'].forEach(c => { if (c !== cls) img.classList.remove(c); });
+      if (cls) img.classList.add(cls);
+    }
+    // 突發事件：畫面輕晃（iPhone 也有感）＋ Android 手機震動；音效關閉時不震動
+    let _lastAlarmFx = 0;
+    function emergentAlarmFx() {
+      const now = Date.now(); if (now - _lastAlarmFx < 1500) return; _lastAlarmFx = now;
+      const vp = document.getElementById('viewport');
+      if (vp) { vp.classList.remove('alarm-shake'); void vp.offsetWidth; vp.classList.add('alarm-shake'); setTimeout(() => vp.classList.remove('alarm-shake'), 500); }
+      try { if (SoundFX.enabled && navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) { }
+    }
     function updateVitalDanger() {
       const vp = document.getElementById('viewport'); if (!vp) return;
       let el = document.getElementById('vital-danger');
@@ -11630,7 +11659,7 @@
 
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
-      try { applyVitalFloor(); updateVitalDanger(); } catch (e) { }
+      try { applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); } catch (e) { }
       if (gameState.isIntern) { try { internStatNag(); } catch (e) { } }
       const h = Math.floor(gameState.currentTime / 60) % 24;
       const m = gameState.currentTime % 60;
@@ -12535,6 +12564,7 @@
     mkNpc({ top: 0xffffff, bottom: 0x6a8fb8, hair: 0x3a2a24, coat: 0xffffff }, [20, 80], 4.5, 64.5);
     // 主角
     nurse = buildPerson({ top: 0xf7a8c4, bottom: 0xffffff, cap: true, female: true, hair: 0x3a2a24, scale: 1.0 });
+    nurse.g.traverse(o => { if (o.isMesh && o.material) { o.material = o.material.clone(); o.userData.baseColor = o.material.color.clone(); } });   // 主角材質獨立，才能依狀態變色
     scene.add(nurse.g);
   }
 
@@ -12631,6 +12661,20 @@
       walkPh += moving ? dt * 12 : 0;
       nurse.g.position.x = nursePos.x; nurse.g.position.z = nursePos.z; nurse.g.rotation.y = nurseRot;
       animateWalk(nurse, walkPh, moving);
+      // 依狀態變色：壓力高偏紅、體力/水分低偏灰
+      const mood = (typeof window.playerMood === 'function') ? window.playerMood() : 'ok';
+      if (mood !== nurse._mood) {
+        nurse._mood = mood;
+        const gray = new THREE.Color(0x8a8a8a), red = new THREE.Color(0xff5a5a);
+        nurse.g.traverse(o => {
+          if (!o.isMesh || !o.userData.baseColor) return;
+          const c = o.userData.baseColor.clone();
+          if (mood === 'weak' || mood === 'both') c.lerp(gray, 0.6);
+          if (mood === 'stress' || mood === 'both') c.lerp(red, 0.35);
+          o.material.color.copy(c);
+          if (o.material.emissive) o.material.emissive.setHex((mood === 'stress' || mood === 'both') ? 0x3a0606 : 0x000000);
+        });
+      }
     }
     // 路人
     npcs.forEach(n => {

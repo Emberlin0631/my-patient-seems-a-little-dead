@@ -1125,6 +1125,19 @@
     .tips-go { display: block; width: 100%; margin-top: 14px; padding: 13px; border: none; border-radius: 10px; color: #fff; font-size: 17px; font-weight: 800; letter-spacing: 2px; cursor: pointer;
       background: linear-gradient(180deg, #14808f, #0f5e6c); box-shadow: 0 6px 16px rgba(15,94,108,.35); }
     @media (min-width: 1000px) and (min-height: 650px) { .tips-list { grid-template-columns: 1fr 1fr; } .tips-list li:last-child { grid-column: span 2; } }
+    /* 檢驗報告表格 */
+    .lab-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; background: rgba(15,23,42,.6); border-radius: 8px; overflow: hidden; }
+    .lab-table th, .lab-table td { padding: 4px 8px; border-bottom: 1px solid #334155; text-align: left; }
+    .lab-table th { color: #94a3b8; font-weight: 700; background: rgba(30,41,59,.9); }
+    .lab-table .lv { font-weight: 800; color: #f1f5f9; font-variant-numeric: tabular-nums; }
+    .lab-table .lab-H { color: #f87171; } .lab-table .lab-L { color: #60a5fa; }
+    .lab-table .lr { color: #94a3b8; font-size: 12px; }
+    .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+    @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
+    /* 學姊留言 */
+    .rep-senior { display: flex; gap: 10px; align-items: flex-start; text-align: left; background: #f8f4ea; color: #16323a; border-radius: 10px; padding: 10px 12px; margin: 4px 0 10px; font-size: 14px; line-height: 1.65; }
+    .rep-senior .rs-badge { flex: none; background: #0f5e6c; color: #fff; font-weight: 800; font-size: 12px; padding: 3px 9px; border-radius: 999px; margin-top: 2px; }
+    .rep-senior .rs-text { font-weight: 600; }
     /* 交班回顧 */
     .rep-review { margin: 4px 0 12px; text-align: left; }
     .rv-details { background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; padding: 8px 12px; }
@@ -1350,8 +1363,9 @@
       /* 結算單：左欄（標題/評語/解鎖/交班回顧/按鈕）右欄（數據），整張放得下不需捲動；交班回顧展開時只在自己的區塊內捲動 */
       .report-card.active { display: grid; width: 94%; max-width: 1500px; height: 92%; max-height: none; overflow: hidden; padding: 2.4vh 2vw;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); column-gap: 2vw;
-        grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
-        grid-template-areas: "title stats" "sub stats" "rank stats" "unlock stats" "review stats" "btns stats"; align-content: start; }
+        grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
+        grid-template-areas: "title stats" "sub stats" "rank stats" "senior stats" "unlock stats" "review stats" "btns stats"; align-content: start; }
+      .report-card > .rep-senior { grid-area: senior; margin: 0 0 1vh; font-size: clamp(13px, 1vw, 16px); }
       .report-card > .report-title { grid-area: title; font-size: clamp(20px, 1.7vw, 30px); }
       .report-card > .report-subtitle { grid-area: sub; margin-bottom: 0; font-size: clamp(13px, 1vw, 17px); }
       .report-card > .report-rank { grid-area: rank; margin: 1.2vh 0; font-size: clamp(17px, 1.4vw, 26px); }
@@ -1545,6 +1559,7 @@
         <p id="shift-counter-line">連六第一天，好開心</p>
         <p>跟著閃爍的警報或門牌走，點擊病房卡片或護理站即可前往處置。</p>
         <p style="font-size:11px; color:#94a3b8; margin-top:2px;">走動：點選地面或直接點擊病房門口卡片　處置：走到床邊自動或彈窗決策</p>
+        <p class="kbd-hint" style="font-size:11px; color:#94a3b8; margin-top:2px;">⌨️ 電腦快捷鍵：空白鍵 暫停｜1–4 選選項｜W 喝水｜R 補紀錄｜S 回護理站｜I 道具｜Esc 稍後</p>
       </div>
 
       <!-- Bottom Action Links -->
@@ -1715,6 +1730,7 @@
           <div class="report-subtitle" id="report-subtitle">恭喜你撐過了今天 8 間病房的驚濤駭浪！</div>
           
           <div class="report-rank" id="report-rank">【病房守護神 ‧ 榮譽準時交班】</div>
+          <div class="rep-senior" id="rep-senior" style="display:none;"></div>
           <div id="report-unlock" style="display:none; margin:6px 0 10px; font-size:12px; line-height:1.7; text-align:center;"></div>
 
           <div class="report-stats-grid">
@@ -8930,6 +8946,8 @@
       gameState.deaths = 0;
       gameState.decisionLog = [];   // 交班回顧：特殊／突發／病房事件的決策紀錄
       gameState._anxTotal = 0;     // 交班倒數焦慮累計
+      try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
+      try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }
       gameState.speedLocked = false;
       ['2', '5'].forEach(k => { const b = document.getElementById(`btn-speed-${k}`); if (b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; } });
       gameState.admissionQueue = [];
@@ -9234,6 +9252,7 @@
       if (d.isBedsore) return EVENT_BADGE_NAMES.EMERGENT_BEDSORE;
       if (d.isOcclusion) return EVENT_BADGE_NAMES.EMERGENT_OCCLUSION;
       if (id.startsWith("BLOOD_")) return "🩸 待抽血";
+      if (id.startsWith("LAB_")) return "🧪 報告回來";
       const key = Object.keys(EVENT_BADGE_NAMES).find(k => id === k || id.startsWith(k + '_'));
       if (key) return EVENT_BADGE_NAMES[key];
       const plain = String(d.title || '').replace(/[（(][^）)]*[）)]/g, '').trim() || String(d.title || '');
@@ -10156,6 +10175,143 @@
     }
 
     /* ===== 交班回顧：記錄特殊／突發／病房事件的選擇，結算時列出（只讀取既有選項的「病人安全」數值評等，不影響遊戲） ===== */
+    /* ===== 電腦鍵盤快捷鍵 ===== */
+    function setUserPause(on) {
+      gameState.userPaused = !!on;
+      let el = document.getElementById('pause-banner');
+      if (!el) { el = document.createElement('div'); el.id = 'pause-banner'; el.className = 'pause-banner'; el.innerText = '⏸ 暫停中（按空白鍵繼續）'; el.onclick = () => setUserPause(false); const vp = document.getElementById('viewport'); if (vp) vp.appendChild(el); }
+      el.style.display = gameState.userPaused ? '' : 'none';
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      const gc = document.getElementById('game-container');
+      if (!gc || getComputedStyle(gc).display === 'none' || gameState.isGameOver) return;
+      const vis = id => { const el = document.getElementById(id); return el && getComputedStyle(el).display !== 'none'; };
+      const k = e.key;
+      if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); setUserPause(!gameState.userPaused); return; }
+      if (gameState.userPaused) return;
+      if (/^[1-9]$/.test(k)) {
+        const n = parseInt(k, 10) - 1;
+        if (vis('event-overlay')) { const b = [...document.querySelectorAll('#options-container .option-btn')][n]; if (b && !b.disabled) { e.preventDefault(); b.click(); } return; }
+        if (vis('multi-event-overlay')) { const b = [...document.querySelectorAll('#multi-event-list-container button')][n]; if (b) { e.preventDefault(); b.click(); } return; }
+        return;
+      }
+      if (k === 'Escape') {
+        if (vis('multi-event-overlay')) { closeMultiEventModal(); return; }
+        const m = document.querySelector('.info-modal.active'); if (m) { closeModal(m.id); return; }
+        const im = document.getElementById('item-modal'); if (im && getComputedStyle(im).display !== 'none') { closeItemModal(); return; }
+        return;
+      }
+      if (vis('event-overlay') || vis('multi-event-overlay') || vis('report-overlay')) return;
+      const kk = k.toLowerCase();
+      if (kk === 'w') drinkWaterAction();
+      else if (kk === 'r') writeRecordAction();
+      else if (kk === 's') walkToStation();
+      else if (kk === 'i') openItemModal();
+    });
+
+    /* ===== 檢驗報告回來：表格顯示 H/L，玩家自己判讀是否為危急值 =====
+       危急值門檻為遊戲設定（各院規定不同）。漏報危急值 → 之後可能演變成相關急症／特殊事件。 */
+    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, evening: { n: 2, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };
+    const LAB_CRIT_CHANCE = 0.35;
+    const LAB_REF = {   // 名稱, 單位, 低, 高, 小數位
+      WBC: ['WBC', '×10³/μL', 4.0, 10.0, 1], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1], PLT: ['PLT', '×10³/μL', 150, 400, 0],
+      Na: ['Na', 'mmol/L', 135, 145, 0], K: ['K', 'mmol/L', 3.5, 5.1, 1], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2], Glu: ['Glucose', 'mg/dL', 70, 140, 0]
+    };
+    const LAB_CRITS = [
+      { key: 'K', val: () => 6.1 + Math.random() * 0.8, rule: 'K ≥ 6.0 mmol/L', name: '高血鉀', follow: 'SPECIAL_VITAL_BRADY' },
+      { key: 'K', val: () => 2.2 + Math.random() * 0.5, rule: 'K ≤ 2.8 mmol/L', name: '低血鉀', follow: 'SPECIAL_VITAL_TACHY' },
+      { key: 'Hb', val: () => 5.6 + Math.random() * 1.2, rule: 'Hb ≤ 7.0 g/dL', name: '重度貧血', follow: 'SPECIAL_VITAL_HYPOTN' },
+      { key: 'PLT', val: () => 4 + Math.random() * 12, rule: 'PLT ≤ 20 ×10³/μL', name: '血小板過低', follow: 'SPECIAL_VITAL_HYPOTN' },
+      { key: 'WBC', val: () => 0.3 + Math.random() * 0.6, rule: 'WBC ≤ 1.0 ×10³/μL（ANC < 500）', name: '嚴重白血球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' },
+      { key: 'Glu', val: () => 32 + Math.random() * 14, rule: 'Glucose ≤ 50 mg/dL', name: '嚴重低血糖', follow: 'EMERGENT_CRITICAL_HYPOGLYCEMIA' },
+      { key: 'Glu', val: () => 470 + Math.random() * 90, rule: 'Glucose ≥ 450 mg/dL', name: '嚴重高血糖', follow: 'EMERGENT_CRITICAL_HYPERGLYCEMIA' }
+    ];
+    function scheduleLabReports(shift) {
+      const plan = LAB_PLAN[shift] || LAB_PLAN.day;
+      const pats = gameState.activePatients.filter(p => !p.isDischarged && !p.isDead).sort(() => Math.random() - 0.5).slice(0, plan.n);
+      gameState.labQueue = pats.map(p => ({ t: plan.from + Math.floor(Math.random() * (plan.to - plan.from)), patient: p }));
+    }
+    function processLabReports() {
+      const q = gameState.labQueue; if (!q || !q.length) return;
+      const due = q.filter(x => x.t <= gameState.currentTime);
+      if (!due.length) return;
+      gameState.labQueue = q.filter(x => x.t > gameState.currentTime);
+      due.forEach(x => {
+        const p = x.patient;
+        if (!p || p.isDead || p.isDischarged || !gameState.activePatients.includes(p)) return;
+        ringRoomAlarm({ time: gameState.currentTime, patient: p, data: buildLabEvent(p) });
+      });
+    }
+    function buildLabEvent(p) {
+      // 血腫科病人常見輕中度異常（L/H 但未達危急值）
+      const v = { WBC: 1.8 + Math.random() * 3.5, Hb: 8.2 + Math.random() * 3, PLT: 35 + Math.random() * 110, Na: 132 + Math.random() * 10,
+                  K: 3.3 + Math.random() * 1.6, Cr: 0.6 + Math.random() * 0.9, Glu: 95 + Math.random() * 90 };
+      const crit = Math.random() < LAB_CRIT_CHANCE ? LAB_CRITS[Math.floor(Math.random() * LAB_CRITS.length)] : null;
+      if (crit) v[crit.key] = crit.val();
+      const fmt = k => { const r = LAB_REF[k]; return v[k].toFixed(r[4]); };
+      const flag = k => { const r = LAB_REF[k]; return v[k] < r[2] ? 'L' : (v[k] > r[3] ? 'H' : ''); };
+      const rows = Object.keys(LAB_REF).map(k => { const r = LAB_REF[k], f = flag(k);
+        return `<tr><td>${r[0]}</td><td class="lv${f ? ' lab-' + f : ''}">${fmt(k)}${f ? ' <b>' + f + '</b>' : ''}</td><td class="lr">${r[2]}–${r[3]} ${r[1]}</td></tr>`; }).join('');
+      const table = `<table class="lab-table"><thead><tr><th>項目</th><th>結果</th><th>參考值</th></tr></thead><tbody>${rows}</tbody></table>`;
+      const what = crit ? `${crit.name}：${LAB_REF[crit.key][0]} ${fmt(crit.key)}（危急值 ${crit.rule}）` : '';
+      const okHint = '數值雖有 H/L，但都未達危急值，記錄並交班提醒即可。';
+      const options = [
+        { keyTag: 'A', text: '立即電話通報醫師危急值，並完成危急值通報紀錄', time: 3, stress: 2, stamina: -1, records: 1, safety: crit ? 8 : -2, favor: crit ? 0 : -5,
+          hint: crit ? `正確！${what}，必須立即通報醫師。` : '這份報告沒有危急值，醫師被你一通電話吵醒有點不高興。' + okHint },
+        { keyTag: 'B', text: '異常值在預期內，寫進護理紀錄、交班時提醒', time: 1, stress: 0, stamina: 0, records: 1, safety: crit ? -10 : 3,
+          hint: crit ? `漏報了！${what}，應該立即通報醫師。` : '正確！' + okHint,
+          outcomes: crit ? [{ p: 0.6, event: crit.follow, delayMin: 45, toast: `⚠️【病房 ${p.assignedRoom}】${crit.name}未處理，病況可能惡化…` }] : undefined },
+        { keyTag: 'C', text: '等醫師查房自己看報告就好', time: 0, stress: 0, stamina: 0, records: 0, safety: crit ? -15 : -2,
+          hint: crit ? `漏報了！${what}，危急值不能等查房。` : '沒有危急值，但報告還是要看過、記錄下來。',
+          outcomes: crit ? [{ p: 0.8, event: crit.follow, delayMin: 40, toast: `⚠️【病房 ${p.assignedRoom}】${crit.name}未處理，病況可能惡化…` }] : undefined }
+      ];
+      return {
+        id: `LAB_${p.assignedRoom}_${gameState.currentTime}`, category: 'special', title: '檢驗報告回來',
+        desc: `【病房 ${p.assignedRoom} (${p.name})】今天的血液檢驗報告出來了，請判讀是否有危急值：${table}`,
+        options, deadlineMinutes: 60, onExpire: crit ? { event: crit.follow } : undefined, _labCrit: !!crit
+      };
+    }
+
+    /* ===== 學姊留言：結算時依表現給一兩句評語（學姊口吻） ===== */
+    function seniorCommentLines(isFailure, reason) {
+      const r = String(reason || ''), L = [];
+      const ot = Math.max(0, gameState.currentTime - gameState.shiftEndTime);
+      const rec = gameState.records || 0, safety = gameState.patientSafety, deaths = gameState.deaths || 0;
+      const bad = (gameState.decisionLog || []).filter(x => x.grade === 'bad').length;
+      const ok = (gameState.decisionLog || []).filter(x => x.grade === 'ok').length;
+      if (isFailure) {
+        if (/過勞昏倒/.test(r)) L.push('你倒下去的時候我剛好在打紀錄，還好我腿比較長先接住你。下次珍奶不要省。');
+        else if (/膀胱炎/.test(r)) L.push('叫你喝水你不聽，現在好了，跟學一樣要去回診。');
+        else if (/崩潰離職/.test(r)) L.push('離職信我先幫你收著，明天睡飽再決定要不要交。');
+        else if (/醫療疏失/.test(r)) L.push('病人安全掉成這樣，護理長要找你談話了……我陪你一起去。');
+        else if (/護理長強制交班/.test(r)) L.push('加班八小時還做不完，不全是你的問題，是這病房太硬……但紀錄還是要寫。');
+        else if (/家屬|毆打|衝突|投訴/.test(r)) L.push('家屬那邊我幫你擋一下，下次先處理病人、再好好跟家屬說。');
+        else L.push('紅框的事不能等，下次聽到警報先跑過去再說，不要讓病人等。');
+        if (deaths > 0 && !/死亡|窒息|致命/.test(r)) L.push('今天有病人走了，不是你一個人的錯，回家好好休息。');
+        return L.slice(0, 2);
+      }
+      if (ot === 0 && rec === 0) L.push('準時下班？你確定你今天有上班嗎……開玩笑的，做得很好。');
+      if (bad > 0) L.push(`交班回顧裡有 ${bad} 題選得有點危險，回家再看一下，下次就不會錯了。`);
+      else if (safety >= 95 && ok === 0 && (gameState.decisionLog || []).length) L.push('今天判斷都很穩，病人交給你我放心。');
+      if (deaths > 0) L.push('今天有病人走了，不是你的錯。該做的你都做了，回家好好休息。');
+      if (rec >= 5) L.push(`紀錄欠了 ${rec} 筆，你今天又要無償加班了，我先走囉。`);
+      if (ot > 60) L.push(`加班 ${ot} 分鐘，記得報加班……雖然大概報不了。`);
+      if (gameState.stress >= 70) L.push('壓力很大吧？下班去吃點好吃的，不要把病房帶回家。');
+      if (gameState.hydration < 30) L.push('嘴唇都乾了，先去喝水再回家。');
+      if (gameState.stamina < 20) L.push('你看起來快倒了，騎車回家小心一點。');
+      if (!L.length) L.push('辛苦了，明天見。記得早點睡，不要又滑手機到天亮。');
+      return L.slice(0, 2);
+    }
+    function renderSeniorComment(isFailure, reason) {
+      const el = document.getElementById('rep-senior'); if (!el) return;
+      const lines = seniorCommentLines(isFailure, reason);
+      el.innerHTML = `<span class="rs-badge">學姊留言</span><div class="rs-text">${lines.map(t => '「' + t.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])) + '」').join('<br>')}</div>`;
+      el.style.display = '';
+    }
+
     function decisionScore(o) { return (o.endShift && o.endShiftP === undefined) ? -999 : (o.safety || 0) - (o.endShift ? 30 : 0); }
     function logDecision(opt, p) {
       try {
@@ -10583,6 +10739,7 @@
 
     function gameTick() {
       if (gameState.isGameOver) return;
+      if (gameState.userPaused) return;   // 玩家按空白鍵暫停
       syncSpeedLock();
       if (gameState.isPaused) return;
       updateMovement();
@@ -10611,6 +10768,7 @@
       runAdmissionDrawsBetween(_t0, gameState.currentTime);   // 入院抽選（每 30 分鐘）
       fireDueScheduledEvents(false);   // 個案排程：到點觸發
       processDelayedEvents();          // 事件延伸：到點觸發
+      processLabReports();             // 檢驗報告回來
 
       // 特殊事件時限（deadlineMinutes + onExpire）
       for (const spEv of gameState.pendingEvents.filter(e => (e.data.category === 'special' || e.data.category === 'ward') && e.data.deadlineMinutes)) {
@@ -11418,10 +11576,34 @@
         const need = frac === 1 ? 2 : 1;
         if (gameState.isGameOver || item.halves < need) return;
         item.halves -= need;
-        item.eat(frac);
         const _mins = item.mins !== undefined ? item.mins : (frac === 1 ? 30 : 15);
-        if (_mins > 0) { showToast(`🍽️ 用餐耗時 ${_mins} 分鐘`, 2500); advanceTime(_mins); }
-        openItemModal();
+        if (_mins <= 0) { item.eat(frac); openItemModal(); updateHUD(); return; }
+        // 用餐會被打斷：逐分鐘吃，途中來了新的突發／特殊／病房事件就被叫走，只得到吃了的比例
+        const s0 = { st: gameState.stamina, hy: gameState.hydration, sr: gameState.stress };
+        item.eat(frac);
+        const d = { st: gameState.stamina - s0.st, hy: gameState.hydration - s0.hy, sr: gameState.stress - s0.sr };
+        gameState.stamina = s0.st; gameState.hydration = s0.hy; gameState.stress = s0.sr;
+        const urgentCount = () => gameState.pendingEvents.filter(e => ['emergent', 'special', 'ward'].includes(e.data && e.data.category)).length;
+        const u0 = urgentCount();
+        let eaten = 0, cut = false;
+        for (let i = 0; i < _mins; i++) {
+          advanceTime(1); eaten++;
+          if (gameState.isGameOver) break;
+          if (urgentCount() > u0) { cut = true; break; }
+        }
+        const ratio = eaten / _mins;
+        gameState.stamina = Math.max(0, Math.min(100, gameState.stamina + d.st * ratio));
+        gameState.hydration = Math.max(0, Math.min(100, gameState.hydration + d.hy * ratio));
+        gameState.stress = Math.max(0, Math.min(100, gameState.stress + d.sr * ratio));
+        gameState.stamina = Math.round(gameState.stamina); gameState.stress = Math.round(gameState.stress);
+        if (gameState.isGameOver) return;
+        if (cut) {
+          showToast(`📞 吃了 ${eaten} 分鐘就被叫走了！只吃到約 ${Math.round(ratio * 100)}%，便當放到涼掉……`, 5000);
+          closeItemModal();
+        } else {
+          showToast(`🍽️ 用餐 ${_mins} 分鐘，吃完了！`, 2500);
+          openItemModal();
+        }
         updateHUD();
         return;
       }
@@ -11538,6 +11720,7 @@
       else SoundFX.playSuccess();
 
       try { renderDecisionReview(); } catch (e) { }
+      try { renderSeniorComment(isFailure, reason); } catch (e) { }
       const overlay = document.getElementById("report-overlay");
       const titleEl = document.getElementById("report-main-title");
       const subtitle = document.getElementById("report-subtitle");

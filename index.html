@@ -1134,6 +1134,10 @@
     .lab-table .lab-HH { color: #fff; background: #dc2626; font-weight: 800; } .lab-table .lab-LL { color: #fff; background: #2563eb; font-weight: 800; }
     .lab-table .lj { font-weight: 700; white-space: nowrap; }
     .lab-table .lr { color: #94a3b8; font-size: 12px; }
+    .vital-danger { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); z-index: 75; background: #b91c1c; color: #fff; border: 2px solid #fecaca; border-radius: 10px; padding: 8px 16px; font-weight: 900; font-size: 15px; white-space: nowrap; cursor: pointer; box-shadow: 0 0 18px rgba(239,68,68,.9); animation: vitalFlash .45s steps(2, jump-none) infinite; }
+    .vital-danger small { font-weight: 700; opacity: .9; margin-left: 6px; }
+    @keyframes vitalFlash { 0% { background: #b91c1c; color: #fff; } 100% { background: #fef2f2; color: #dc2626; } }
+    @media (max-width: 700px) { .vital-danger { font-size: 12.5px; padding: 6px 10px; top: 46px; white-space: normal; width: 90%; text-align: center; } }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
     /* 學姊留言 */
@@ -1974,6 +1978,44 @@
           osc.start(now + t);
           osc.stop(now + t + 0.1);
         });
+      },
+      // 警報分級：常規（叮咚）／管路阻塞（逼逼—逼逼）／突發急症 Code Blue（低沉急促蜂鳴）
+      _tone(freq, t0, dur, type, vol, freq2) {
+        const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, t0);
+        if (freq2) osc.frequency.setValueAtTime(freq2, t0 + dur / 2);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+        gain.gain.setValueAtTime(vol, t0 + Math.max(0.01, dur - 0.04));
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t0); osc.stop(t0 + dur + 0.02);
+      },
+      playDingDong() {
+        if (!this.enabled) return; this.init(); if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        this._tone(784, now, 0.45, 'sine', 0.10);          // 叮
+        this._tone(587, now + 0.32, 0.6, 'sine', 0.09);    // 咚
+      },
+      playOcclusion() {
+        if (!this.enabled) return; this.init(); if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [0, 0.16, 0.6, 0.76].forEach(t => this._tone(2100, now + t, 0.1, 'square', 0.05));   // 逼、逼——逼、逼
+      },
+      playCodeBlue() {
+        if (!this.enabled) return; this.init(); if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 8; i++) this._tone(i % 2 ? 330 : 440, now + i * 0.17, 0.14, 'sawtooth', 0.07);   // 低沉急促連續蜂鳴
+      },
+      playEventAlarm(data, category) {
+        const kind = category === 'routine' ? 'r' : ((data && (data.isOcclusion || /OCCLUSION/.test(String(data.id || '')))) ? 'o' : (category === 'emergent' ? 'e' : 'a'));
+        const nowMs = Date.now(); this._last = this._last || {};
+        if (nowMs - (this._last[kind] || 0) < 700) return;   // 同一分鐘多床同時到點：同種警報不疊加
+        this._last[kind] = nowMs;
+        if (category === 'routine') return this.playDingDong();
+        if (data && (data.isOcclusion || /OCCLUSION/.test(String(data.id || '')))) return this.playOcclusion();
+        if (category === 'emergent') return this.playCodeBlue();
+        return this.playAlarm();
       },
       playSuccess() {
         if (!this.enabled) return;
@@ -8967,6 +9009,7 @@
       gameState.deaths = 0;
       gameState.decisionLog = [];   // 交班回顧：特殊／突發／病房事件的決策紀錄
       gameState._anxTotal = 0;     // 交班倒數焦慮累計
+      gameState.vitalGraceUntil = 0;   // 搶救保護
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
       gameState.labQueue = [];
       gameState.speedLocked = false;
@@ -9852,7 +9895,7 @@
           } else {
             gameState.stamina = Math.max(0, gameState.stamina - 2);
             gameState.patientSafety = Math.max(0, gameState.patientSafety - 5);
-            gameState.records += 1;
+            gameState.records += 1; logRoutineLate('oral', ev.patient, -5);
             showToast(`⚠️【病房 ${roomNum}】給口服藥超時！補寫延遲記錄（安全 -5, 紀錄 +1）`);
           }
         } else if (ev.data.isVitalSign) {
@@ -9862,7 +9905,7 @@
           } else {
             gameState.stamina = Math.max(0, gameState.stamina - 2);
             gameState.patientSafety = Math.max(0, gameState.patientSafety - 3);
-            gameState.records += 1;
+            gameState.records += 1; logRoutineLate('vs', ev.patient, -3);
             showToast(`⚠️【病房 ${roomNum}】量 vital sign 超時！補寫記錄（安全 -3, 紀錄 +1）`);
           }
           rollVitalBranch(ev.patient, roomNum);
@@ -9873,7 +9916,7 @@
           } else {
             gameState.stamina = Math.max(0, gameState.stamina - 2);
             gameState.patientSafety = Math.max(0, gameState.patientSafety - 3);
-            gameState.records += 1;
+            gameState.records += 1; logRoutineLate('infusion', ev.patient, -3);
             showToast(`⚠️【病房 ${roomNum}】給輸液超時！補寫記錄（安全 -3, 紀錄 +1）`);
           }
         } else if (ev.data.isAntibiotic) {
@@ -9883,7 +9926,7 @@
           } else {
             gameState.stamina = Math.max(0, gameState.stamina - 2);
             gameState.patientSafety = Math.max(0, gameState.patientSafety - 5);
-            gameState.records += 1;
+            gameState.records += 1; logRoutineLate('antibiotic', ev.patient, -5);
             showToast(`⚠️【病房 ${roomNum}】給抗生素超時！補寫記錄（安全 -5, 紀錄 +1）`);
           }
           setTimeout(() => {
@@ -9903,7 +9946,7 @@
           } else {
             gameState.stamina = Math.max(0, gameState.stamina - 2);
             gameState.patientSafety = Math.max(0, gameState.patientSafety - 5);
-            gameState.records += 1;
+            gameState.records += 1; logRoutineLate('morphine', ev.patient, -5);
             showToast(`⚠️【病房 ${roomNum}】給止痛超時！（安全 -5, 紀錄 +1）`);
           }
         } else if (ev.data.isReposition) {
@@ -10047,7 +10090,7 @@
       }
 
       gameState.pendingEvents.push(evObj);
-      SoundFX.playAlarm();
+      SoundFX.playEventAlarm(data, category);   // 警報分級
 
       updateRoomCardsVisualHierarchy();
 
@@ -10333,7 +10376,7 @@
       const r = String(reason || ''), L = [];
       const ot = Math.max(0, gameState.currentTime - gameState.shiftEndTime);
       const rec = gameState.records || 0, safety = gameState.patientSafety, deaths = gameState.deaths || 0;
-      const bad = (gameState.decisionLog || []).filter(x => x.grade === 'bad').length;
+      const bad = (gameState.decisionLog || []).filter(x => x.grade === 'bad' && x.cat !== 'routine').length;
       const ok = (gameState.decisionLog || []).filter(x => x.grade === 'ok').length;
       if (isFailure) {
         if (/過勞昏倒/.test(r)) L.push('你倒下去的時候我剛好在打紀錄，還好我腿比較長先接住你。下次珍奶不要省。');
@@ -10365,6 +10408,124 @@
       el.style.display = '';
     }
 
+    /* ===== 交班回顧：各選項的答題解析（為什麼對／為什麼扣病人安全）=====
+       依事件 ID 前綴對應；選項有自己的 hint 時以選項為準。臨床內容僅供遊戲學習參考，請以各院規範為準。 */
+    const OPTION_HINTS = {
+      SPECIAL_HYPOGLYCEMIA: {
+        A: '15-15 法則：給 15g 快速吸收的糖，15 分鐘後複測，仍低於 70 就再給一次，直到血糖回穩。',
+        B: '給糖是對的，但一定要 15 分鐘後複測，確認血糖真的回升，否則可能再掉下去。',
+        C: '低血糖要馬上補充快速吸收的糖，等院餐太慢，可能惡化成意識不清。',
+        D: '通知醫師不算錯，但病人清醒、能吃東西時，護理師可以先依 15-15 法則處理並複測，不用等醫師。' },
+      SPECIAL_HYPERGLYCEMIA: {
+        A: 'RI 100U 是明顯不合理的劑量（很可能多打一個 0）。遇到不合理的醫囑要先跟醫師確認，不能照打。',
+        B: '血糖 290 要處理：先聯絡醫師確認胰島素劑量，給藥後依時間複測。',
+        C: '290 已經偏高，應先通報醫師確認處置，不是單純再觀察。',
+        D: '高血糖不能當沒看到，持續偏高會脫水、增加感染風險，嚴重可能進展成高血糖急症。' },
+      SPECIAL_IO_OVERLOAD: {
+        A: '正平衡太多要評估肺部囉音、水腫與呼吸，先限水並通報醫師，由醫師決定是否給利尿劑或調整輸液。',
+        B: '輸液速度依醫囑，護理師不能自己調；評估也不該丟給下一班。',
+        C: '竄改紀錄是嚴重違規，醫師會無法判斷病況，病人可能進展成肺水腫。',
+        D: '體液過多可能引起肺水腫，發現了就要處理和通報，不能留給下一班。' },
+      SPECIAL_IO_DEFICIT: {
+        A: '嚴重負平衡要通報醫師補液、補電解質，並密集監測血壓，預防低血容與急性腎損傷。',
+        B: '嚴重脫水靠喝飲料補太慢，也沒通知醫師調整點滴；含糖飲料還可能讓腹瀉更嚴重。',
+        C: '有在處理，但補液的種類和速度要由醫師開立，先通報醫師才是第一步。',
+        D: '只交代口渴再喝水不夠，沒通報補液可能導致低血容休克與急性腎損傷。' },
+      EMERGENT_BEDSORE: {
+        A: '指責家屬不會讓傷口變好，還可能引發衝突；定時翻身減壓本來就是護理照護的一部分。',
+        B: '壓傷發現了就要立刻處理和通報，拖延只會讓傷口惡化。',
+        C: '二級壓傷要換藥、使用合適的敷料、持續減壓，並拍照通報院內壓傷系統追蹤。',
+        D: '可以先處理更緊急的事，但壓傷警報還在，記得回來處理。' },
+      BEDSORE_: 'EMERGENT_BEDSORE',
+      EMERGENT_OCCLUSION: {
+        A: '確定阻塞時最安全的做法是重新建立管路，不要硬沖。',
+        B: '用空針用力沖管，可能把血栓推進血管造成栓塞，不建議。',
+        C: '先檢查管路有沒有凹折或被壓住是合理的第一步，但確定阻塞後就要重新建立管路。',
+        D: '把警報靜音、留給下一班，病人的點滴（可能含重要藥物）會一直停著。' },
+      OCCLUSION_: 'EMERGENT_OCCLUSION',
+      EMERGENT_NEUTROPENIC_FEVER: {
+        A: '中性球低下發燒是急症：立刻抽雙套血液培養、通報醫師，並盡快（一小時內）給廣效抗生素。',
+        B: '只用冰枕觀察會延誤抗生素，中性球低下的病人可能很快進展成敗血性休克。' },
+      EMERGENT_CRITICAL_HYPOGLYCEMIA: {
+        A: '病人意識不清不能由口進食，要立即通知醫師、靜脈推注高濃度葡萄糖（D50W）。',
+        B: '血糖 18 又意識改變是急症，不是累了；延誤可能造成腦部傷害甚至死亡。',
+        C: '找學姊幫忙可以，但最重要的是立刻通知醫師、靜脈給糖。',
+        D: '血糖 18 是急症，應該先處理這床。' },
+      EMERGENT_CRITICAL_HYPERGLYCEMIA: {
+        A: '高血糖高滲透壓狀態（HHS）首要是大量補液矯正脫水，胰島素依醫囑使用，並密切監測血糖。',
+        B: '一開始就推胰島素、血糖降太快，可能造成腦水腫；應先補液，胰島素依醫囑給。',
+        C: '找學姊可以，但要盡快通知醫師並開始補液。',
+        D: '血糖超過 500 是急症，不能當作吃太飽。' },
+      EMERGENT_CRITICAL_RESPIRATORY_FAILURE: {
+        A: '呼吸衰竭要先維持呼吸道（抽痰）、給氧，立即通知醫師並準備插管用物。',
+        B: '只調高氧氣，沒有處理痰液阻塞、也沒通知醫師，病人可能窒息。',
+        C: '找人幫忙是對的，但自己也要同時處理並通知醫師。',
+        D: '血氧低要先當成真的處理，確認病人狀況後再檢查血氧夾，不能直接走開。' },
+      EMERGENT_CRITICAL_ON_ENDO_TUBE: {
+        A: '緊急插管時備妥用物、協助醫師，插管後確認管路位置並固定。',
+        B: '緊急插管是最優先的事，延後可能危及生命。' },
+      SPECIAL_VITAL_HTN: {
+        A: '血壓偏高先讓病人休息、換手臂（或雙臂）複測，詢問頭痛、視力模糊、胸痛等症狀，並考慮疼痛、焦慮、剛輸血等因素，再通知醫師。',
+        B: '沒有先複測和評估就直接給降壓藥，可能把血壓降太多；血壓異常也要報告醫師。',
+        C: '186/104 不能只當作緊張，要複測、評估症狀，確認是不是高血壓急症。' },
+      SPECIAL_VITAL_HYPOTN: {
+        A: '低血壓要先比對平時血壓、讓病人平躺抬高下肢，找原因（出血、感染、脫水），並通知醫師。',
+        B: '低血壓時坐起來可能更暈甚至跌倒，喝水補充也太慢。',
+        C: '只通知醫師卻不做初步處置、也不複測，無法掌握病情變化。' },
+      SPECIAL_VITAL_TACHY: {
+        A: '心跳過快要找原因：發燒、疼痛、出血、脫水、缺氧等，評估後通知醫師。',
+        B: '深呼吸可以放鬆，但 HR 138 要先評估原因並通知醫師，不能只等 15 分鐘。',
+        C: 'HR 138 不能直接當成緊張，可能是發燒、出血或敗血症的早期徵兆。' },
+      SPECIAL_VITAL_BRADY: {
+        A: 'HR 38 要接上監視器、評估意識與血壓、通知醫師並準備急救車。',
+        B: '心跳 38 不能當成睡著，可能是心律不整或高血鉀，要立即評估。',
+        C: '心搏過緩時起身走動可能暈倒跌倒，非常危險。' },
+      SPECIAL_VITAL_FEVER: {
+        A: '血液腫瘤科病人發燒要當成可能感染：通知醫師、抽雙套血液培養，並盡快給廣效抗生素。',
+        B: '冰枕只是降溫，延後報告會延誤抗生素，免疫低下的病人可能很快惡化。',
+        C: '自行給退燒藥會掩蓋發燒，沒通報、沒抽培養會延誤感染的診斷與治療。' },
+      SPECIAL_TRANSFUSION: {
+        A: '輸血前要雙人核對血袋與病人身分，前 15 分鐘慢速輸注並密切觀察，才能及早發現輸血反應。',
+        B: '輸血一定要雙人核對；一開始就調快速度，發生輸血反應時會來不及發現。' },
+      SPECIAL_BLOOD_EXPIRED: {
+        A: '過期血袋不能輸，要退回血庫並重新申請。',
+        B: '過期血袋可能已經變質或受污染，絕對不能輸。' },
+      EMERGENT_VITAL_DYSPNEA: {
+        A: '呼吸喘、血氧低要抬高床頭、給氧、持續監測，通知醫師安排胸部 X 光與動脈血氣分析找原因。',
+        B: '只把氧氣開大、沒有找原因也沒通知醫師，病情可能持續惡化。',
+        C: '血氧 86% 是缺氧，不能當成過度換氣。' },
+      EMERGENT_VITAL_ARREST: {
+        A: '發現無呼吸無心跳要立刻呼救、啟動 Code Blue、開始 CPR，並請人推急救車與 AED。',
+        B: '離開病人去找醫師會延誤 CPR，每延遲一分鐘存活率都會下降；要原地呼救並立刻壓胸。',
+        C: '沒有呼吸心跳必須立刻 CPR，不能走開。' }
+    };
+    function optionHintFor(d, opt) {
+      if (opt && opt.hint) return opt.hint;
+      const id = String((d && d.id) || '');
+      let key = Object.keys(OPTION_HINTS).filter(k => id.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+      if (!key) return '';
+      let map = OPTION_HINTS[key]; if (typeof map === 'string') map = OPTION_HINTS[map];
+      let tag = opt.keyTag;
+      if (!tag && d.options) { const i = d.options.indexOf(opt); if (i >= 0) tag = 'ABCDEFG'[i]; }
+      return (map && tag && map[tag]) || '';
+    }
+    // 常規事項逾時：記進交班回顧，說明為什麼要準時
+    const ROUTINE_LATE_WHY = {
+      oral: ['給口服藥', '口服的標靶藥、類固醇、排鐵劑等要按時服用才能維持藥效；延遲會影響療效，也要補寫延遲紀錄。'],
+      vs: ['量 vital sign', '生命徵象是發現病情變化的第一線，延遲測量可能錯過發燒、低血壓等早期惡化徵兆。'],
+      infusion: ['給輸液', '輸液延遲會影響水分與電解質補充，以及化療前後的水化，也會打亂後續給藥時間。'],
+      antibiotic: ['給抗生素', '抗生素要依間隔準時給，才能維持有效血中濃度；免疫低下的病人延遲給藥，感染更容易惡化。'],
+      morphine: ['給止痛', '止痛藥要按時給才能維持穩定的止痛效果，延遲會讓病人承受不必要的疼痛，之後也更難控制。']
+    };
+    function logRoutineLate(kind, p, safety) {
+      try {
+        const w = ROUTINE_LATE_WHY[kind]; if (!w) return;
+        (gameState.decisionLog = gameState.decisionLog || []).push({
+          t: gameState.currentTime, room: p ? p.assignedRoom : '', name: p ? p.name : '', cat: 'routine',
+          title: `常規：${w[0]}`, chosen: `超過 2 小時才完成（病人安全 ${safety}）`, best: `在 2 小時內完成${w[0]}`, grade: 'bad', hint: w[1]
+        });
+      } catch (e) { }
+    }
     function decisionScore(o) { return (o.endShift && o.endShiftP === undefined) ? -999 : (o.safety || 0) - (o.endShift ? 30 : 0); }
     function logDecision(opt, p) {
       try {
@@ -10377,25 +10538,26 @@
         const grade = mx === mn ? 'na' : (my >= mx ? 'best' : ((my <= mn || my < 0) ? 'bad' : 'ok'));
         (gameState.decisionLog = gameState.decisionLog || []).push({
           t: gameState.currentTime, room: p ? p.assignedRoom : '護理站', name: p ? p.name : '', cat: d.category,
-          title: d.title || '', chosen: swapSenior(stripParenText(opt.text || '')), best: swapSenior(stripParenText(best.text || '')), grade, hint: opt.hint || ''
+          title: d.title || '', chosen: swapSenior(stripParenText(opt.text || '')), best: swapSenior(stripParenText(best.text || '')), grade, hint: optionHintFor(d, opt)
         });
       } catch (e) { }
     }
     function renderDecisionReview() {
       const box = document.getElementById('rep-review'); if (!box) return;
       const log = gameState.decisionLog || [];
-      if (!log.length) { box.innerHTML = '<div class="rv-empty">這班沒有遇到需要判斷的特殊／突發事件。</div>'; return; }
+      if (!log.length) { box.innerHTML = '<div class="rv-empty">這班沒有遇到需要判斷的特殊／突發事件，常規也都準時完成。</div>'; return; }
       const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const clock = t => `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
       const n = g => log.filter(x => x.grade === g).length;
+      const nLate = log.filter(x => x.cat === 'routine').length;
       const mark = { best: '✅', ok: '⚠️', bad: '❌', na: '💬' };
       const rows = log.map(x => `<div class="rv-row rv-${x.grade}">
-          <div class="rv-head">${mark[x.grade]} <b>${clock(x.t)}</b>｜${esc(x.room)}${x.name ? ' ' + esc(x.name) : ''}｜${esc(x.title)}</div>
+          <div class="rv-head">${x.cat === 'routine' ? '⏰' : mark[x.grade]} <b>${clock(x.t)}</b>｜${esc(x.room)}${x.name ? ' ' + esc(x.name) : ''}｜${esc(x.title)}</div>
           <div class="rv-line">你的處置：${esc(x.chosen)}</div>
           ${(x.grade === 'ok' || x.grade === 'bad') ? `<div class="rv-line rv-better">更安全的做法：${esc(x.best)}</div>` : ''}
           ${x.hint ? `<div class="rv-line rv-hint">💡 ${esc(x.hint)}</div>` : ''}
         </div>`).join('');
-      box.innerHTML = `<details class="rv-details"${n('bad') ? ' open' : ''}><summary>🧠 交班回顧：關鍵決策 ${log.length} 項（✅ 最安全 ${n('best')}｜⚠️ 可以更好 ${n('ok')}｜❌ 有風險 ${n('bad')}）</summary>${rows}
+      box.innerHTML = `<details class="rv-details"${n('bad') ? ' open' : ''}><summary>🧠 交班回顧：關鍵決策 ${log.length - nLate} 項（✅ 最安全 ${n('best')}｜⚠️ 可以更好 ${n('ok')}｜❌ 有風險 ${n('bad') - nLate}）${nLate ? `｜⏰ 常規逾時 ${nLate} 項` : ''}</summary>${rows}
         <div class="rv-note">評等依遊戲內各選項的「病人安全」數值比較，僅供娛樂與學習參考。</div></details>`;
     }
 
@@ -10403,6 +10565,7 @@
       SoundFX.playClick();
       const timeCost = (typeof opt.time === 'number') ? opt.time : 5;   // 選項標示 +0 分鐘就真的是 0 分鐘（舊寫法 0 會被當成 5）
       const _wasWard = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'ward');
+      const _wasEmergent = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'emergent');
       const p = (gameState.activeEvent && !gameState.activeEvent.patient.isWard) ? gameState.activeEvent.patient : null;
       const roomNum = p ? p.assignedRoom : null;
       const roomState = roomNum ? gameState.roomBloodState[roomNum] : null;
@@ -10420,6 +10583,7 @@
       }
 
       logDecision(opt, p);
+      if (_wasEmergent && !(opt.isBedsoreD || opt.isRespFailD || opt.isOnEndoB || opt.isCritHypoD || opt.isCritHyperD)) startVitalGrace(timeCost);   // 搶救保護：處置期間＋之後 15 分鐘，體力/水分最低 5%
 
       // 選項給道具（例：家屬致謝的鳳梨酥）
       if (opt.giveItem) {
@@ -10718,6 +10882,7 @@
 
       gameState.stamina = Math.max(0, Math.min(100, gameState.stamina + (opt.stamina || 0)));
       gameState.hydration = Math.max(0, Math.min(100, gameState.hydration + (opt.hydration || 0)));   // 選項沒寫的欄位視為 0（避免 NaN）
+      applyVitalFloor();
       gameState.records = Math.max(0, gameState.records + (opt.records || 0));
       if (opt.safety) gameState.patientSafety = Math.max(0, Math.min(100, gameState.patientSafety + opt.safety));
       if (opt.favor) gameState.seniorFavor = Math.max(0, Math.min(100, gameState.seniorFavor + opt.favor));
@@ -10995,7 +11160,31 @@
       el.style.display = on ? '' : 'none';
     }
 
+    /* ===== 搶救保護：處理突發急症（含插管、CPR）時，體力與水分最低鎖在 5%；
+       救完後再保護 VITAL_GRACE_MIN 遊戲分鐘，讓玩家有時間走回護理站，不會在搶救當下昏倒 ===== */
+    const VITAL_FLOOR = 5, VITAL_GRACE_MIN = 15, VITAL_DANGER_AT = 10;
+    function vitalGraceActive() { return !!gameState.vitalGraceUntil && gameState.currentTime <= gameState.vitalGraceUntil && !gameState.isGameOver; }
+    function startVitalGrace(minutes) { gameState.vitalGraceUntil = Math.max(gameState.vitalGraceUntil || 0, gameState.currentTime + (minutes || 0) + VITAL_GRACE_MIN); }
+    function applyVitalFloor() {
+      if (!vitalGraceActive()) return;
+      if (gameState.stamina < VITAL_FLOOR) gameState.stamina = VITAL_FLOOR;
+      if (gameState.hydration < VITAL_FLOOR) gameState.hydration = VITAL_FLOOR;
+    }
+    function updateVitalDanger() {
+      const vp = document.getElementById('viewport'); if (!vp) return;
+      let el = document.getElementById('vital-danger');
+      const lowS = gameState.stamina <= VITAL_DANGER_AT, lowH = gameState.hydration <= VITAL_DANGER_AT;
+      const on = !gameState.isGameOver && (lowS || lowH);
+      if (!on) { if (el) el.style.display = 'none'; return; }
+      if (!el) { el = document.createElement('div'); el.id = 'vital-danger'; el.className = 'vital-danger'; el.title = '點一下走回護理站'; el.onclick = () => { try { walkToStation(); } catch (e) { } }; vp.appendChild(el); }
+      const what = [lowS ? '體力瀕危' : '', lowH ? '極度脫水' : ''].filter(Boolean).join('／');
+      const left = vitalGraceActive() ? `<small>（保護剩 ${gameState.vitalGraceUntil - gameState.currentTime} 分鐘）</small>` : '';
+      el.innerHTML = `⚠️ ${what}！請立刻前往護理站！${left}`;
+      el.style.display = '';
+    }
+
     function checkConditions() {
+      applyVitalFloor();
       if (gameState.stress >= 100) {
         triggerEndShift(true, "【崩潰離職】壓力爆表達 100%！呼叫鈴響個不停，你當場把離職信拍在桌上。");
       } else if (gameState.stamina <= 0) {
@@ -11310,6 +11499,7 @@
 
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
+      try { applyVitalFloor(); updateVitalDanger(); } catch (e) { }
       const h = Math.floor(gameState.currentTime / 60) % 24;
       const m = gameState.currentTime % 60;
       const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;

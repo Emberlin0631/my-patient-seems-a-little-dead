@@ -1130,7 +1130,9 @@
     .lab-table th, .lab-table td { padding: 4px 8px; border-bottom: 1px solid #334155; text-align: left; }
     .lab-table th { color: #94a3b8; font-weight: 700; background: rgba(30,41,59,.9); }
     .lab-table .lv { font-weight: 800; color: #f1f5f9; font-variant-numeric: tabular-nums; }
-    .lab-table .lab-H { color: #f87171; } .lab-table .lab-L { color: #60a5fa; }
+    .lab-table .lab-H { color: #fca5a5; } .lab-table .lab-L { color: #93c5fd; }
+    .lab-table .lab-HH { color: #fff; background: #dc2626; font-weight: 800; } .lab-table .lab-LL { color: #fff; background: #2563eb; font-weight: 800; }
+    .lab-table .lj { font-weight: 700; white-space: nowrap; }
     .lab-table .lr { color: #94a3b8; font-size: 12px; }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
@@ -10212,13 +10214,16 @@
       else if (kk === 'i') openItemModal();
     });
 
-    /* ===== 檢驗報告回來：表格顯示 H/L，玩家自己判讀是否為危急值 =====
-       危急值門檻為遊戲設定（各院規定不同）。漏報危急值 → 之後可能演變成相關急症／特殊事件。 */
+    /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
+       偏高、偏低 → 報告醫師即可；極高、極低（危急值）→ 需馬上通報並處理。
+       門檻為遊戲設定（各院規定不同）。危急值沒馬上處理 → 之後可能演變成相關急症／特殊事件。 */
     const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, evening: { n: 2, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };
-    const LAB_CRIT_CHANCE = 0.35;
-    const LAB_REF = {   // 名稱, 單位, 低, 高, 小數位
-      WBC: ['WBC', '×10³/μL', 4.0, 10.0, 1], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1], PLT: ['PLT', '×10³/μL', 150, 400, 0],
-      Na: ['Na', 'mmol/L', 135, 145, 0], K: ['K', 'mmol/L', 3.5, 5.1, 1], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2], Glu: ['Glucose', 'mg/dL', 70, 140, 0]
+    const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
+    const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
+    const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
+      WBC: ['WBC', '×10³/μL', 4.0, 10.0, 1, 1.0, 30, 'LH'], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1, 7.0, 20, 'L'], PLT: ['PLT', '×10³/μL', 150, 400, 0, 20, 1000, 'L'],
+      Na: ['Na', 'mmol/L', 135, 145, 0, 120, 160, 'LH'], K: ['K', 'mmol/L', 3.5, 5.1, 1, 2.8, 6.0, 'LH'], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2, null, 5.0, 'H'],
+      Glu: ['Glucose', 'mg/dL', 70, 140, 0, 50, 450, 'LH']
     };
     const LAB_CRITS = [
       { key: 'K', val: () => 6.1 + Math.random() * 0.8, rule: 'K ≥ 6.0 mmol/L', name: '高血鉀', follow: 'SPECIAL_VITAL_BRADY' },
@@ -10229,6 +10234,21 @@
       { key: 'Glu', val: () => 32 + Math.random() * 14, rule: 'Glucose ≤ 50 mg/dL', name: '嚴重低血糖', follow: 'EMERGENT_CRITICAL_HYPOGLYCEMIA' },
       { key: 'Glu', val: () => 470 + Math.random() * 90, rule: 'Glucose ≥ 450 mg/dL', name: '嚴重高血糖', follow: 'EMERGENT_CRITICAL_HYPERGLYCEMIA' }
     ];
+    const LAB_LEVEL = { N: ['正常', ''], H: ['偏高', 'lab-H'], L: ['偏低', 'lab-L'], HH: ['極高', 'lab-HH'], LL: ['極低', 'lab-LL'] };
+    function labLevel(k, x) {
+      const r = LAB_REF[k];
+      if (r[5] != null && x <= r[5]) return 'LL';
+      if (r[6] != null && x >= r[6]) return 'HH';
+      if (x < r[2]) return 'L';
+      if (x > r[3]) return 'H';
+      return 'N';
+    }
+    function labNormalVal(k) { const r = LAB_REF[k]; return r[2] + (r[3] - r[2]) * (0.1 + Math.random() * 0.8); }
+    function labMildVal(k) {   // 超出參考值但未達極高／極低
+      const r = LAB_REF[k], dir = r[7][Math.floor(Math.random() * r[7].length)];
+      if (dir === 'L') { const lo = r[5] != null ? r[5] : r[2] * 0.5; return lo + (r[2] - lo) * (0.2 + Math.random() * 0.65); }
+      return r[3] + (r[6] - r[3]) * (0.08 + Math.random() * 0.3);
+    }
     function scheduleLabReports(shift) {
       const plan = LAB_PLAN[shift] || LAB_PLAN.day;
       const pats = gameState.activePatients.filter(p => !p.isDischarged && !p.isDead).sort(() => Math.random() - 0.5).slice(0, plan.n);
@@ -10246,32 +10266,48 @@
       });
     }
     function buildLabEvent(p) {
-      // 血腫科病人常見輕中度異常（L/H 但未達危急值）
-      const v = { WBC: 1.8 + Math.random() * 3.5, Hb: 8.2 + Math.random() * 3, PLT: 35 + Math.random() * 110, Na: 132 + Math.random() * 10,
-                  K: 3.3 + Math.random() * 1.6, Cr: 0.6 + Math.random() * 0.9, Glu: 95 + Math.random() * 90 };
-      const crit = Math.random() < LAB_CRIT_CHANCE ? LAB_CRITS[Math.floor(Math.random() * LAB_CRITS.length)] : null;
+      const keys = Object.keys(LAB_REF), v = {};
+      keys.forEach(k => v[k] = labNormalVal(k));
+      const roll = Math.random();
+      const crit = roll < LAB_CRIT_CHANCE ? LAB_CRITS[Math.floor(Math.random() * LAB_CRITS.length)] : null;
+      const kind = crit ? 'crit' : (roll < LAB_CRIT_CHANCE + LAB_NORMAL_CHANCE ? 'normal' : 'abn');
+      if (kind !== 'normal') {   // 偏高／偏低：異常報告 1–3 項；危急報告另外 0–2 項
+        const pool = keys.filter(k => !crit || k !== crit.key).sort(() => Math.random() - 0.5);
+        const n = kind === 'abn' ? 1 + Math.floor(Math.random() * 3) : Math.floor(Math.random() * 3);
+        pool.slice(0, n).forEach(k => v[k] = labMildVal(k));
+      }
       if (crit) v[crit.key] = crit.val();
-      const fmt = k => { const r = LAB_REF[k]; return v[k].toFixed(r[4]); };
-      const flag = k => { const r = LAB_REF[k]; return v[k] < r[2] ? 'L' : (v[k] > r[3] ? 'H' : ''); };
-      const rows = Object.keys(LAB_REF).map(k => { const r = LAB_REF[k], f = flag(k);
-        return `<tr><td>${r[0]}</td><td class="lv${f ? ' lab-' + f : ''}">${fmt(k)}${f ? ' <b>' + f + '</b>' : ''}</td><td class="lr">${r[2]}–${r[3]} ${r[1]}</td></tr>`; }).join('');
-      const table = `<table class="lab-table"><thead><tr><th>項目</th><th>結果</th><th>參考值</th></tr></thead><tbody>${rows}</tbody></table>`;
-      const what = crit ? `${crit.name}：${LAB_REF[crit.key][0]} ${fmt(crit.key)}（危急值 ${crit.rule}）` : '';
-      const okHint = '數值雖有 H/L，但都未達危急值，記錄並交班提醒即可。';
+      const fmt = k => v[k].toFixed(LAB_REF[k][4]);
+      const lv = {}; keys.forEach(k => lv[k] = labLevel(k, +fmt(k)));
+      const rows = keys.map(k => { const r = LAB_REF[k], L = LAB_LEVEL[lv[k]];
+        return `<tr><td>${r[0]}</td><td class="lv ${L[1]}">${fmt(k)}</td><td class="lj ${L[1]}">${L[0]}</td><td class="lr">${r[2]}–${r[3]} ${r[1]}</td></tr>`; }).join('');
+      const table = `<table class="lab-table"><thead><tr><th>項目</th><th>結果</th><th>判讀</th><th>參考值</th></tr></thead><tbody>${rows}</tbody></table>`;
+      const abnList = keys.filter(k => lv[k] === 'H' || lv[k] === 'L').map(k => `${LAB_REF[k][0]} ${LAB_LEVEL[lv[k]][0]}`).join('、');
+      const what = crit ? `${LAB_REF[crit.key][0]} ${fmt(crit.key)} ${LAB_LEVEL[lv[crit.key]][0]}（${crit.name}，${crit.rule}）` : '';
+      const follow = (pp, d) => crit ? [{ p: pp, event: crit.follow, delayMin: d, toast: `⚠️【病房 ${p.assignedRoom}】${crit.name}沒有馬上處理，病況可能惡化…` }] : undefined;
+      const H = {
+        A: { crit: `正確！${what}，是極高／極低，要馬上通報醫師並處理。`,
+             abn: `報告只有偏高／偏低（${abnList}），沒有極高／極低，用一般方式報告醫師就好，不用當危急值處理。`,
+             normal: '報告全部正常，不需要通報醫師，醫師被你一通電話吵醒有點不高興。' },
+        B: { crit: `不夠快！${what}，是極高／極低，不能只是一般報告，要馬上通報並處理。`,
+             abn: `正確！${abnList}，只是偏高／偏低，報告醫師、記錄並交班即可。`,
+             normal: '報告全部正常，不需要特地報告醫師，記錄已看過即可。' },
+        C: { crit: `漏報了！${what}，是極高／極低，要馬上通報醫師並處理。`,
+             abn: `有偏高／偏低（${abnList}），還是要報告醫師。`,
+             normal: '正確！報告全部正常，記錄已看過即可。' }
+      };
       const options = [
-        { keyTag: 'A', text: '立即電話通報醫師危急值，並完成危急值通報紀錄', time: 3, stress: 2, stamina: -1, records: 1, safety: crit ? 8 : -2, favor: crit ? 0 : -5,
-          hint: crit ? `正確！${what}，必須立即通報醫師。` : '這份報告沒有危急值，醫師被你一通電話吵醒有點不高興。' + okHint },
-        { keyTag: 'B', text: '異常值在預期內，寫進護理紀錄、交班時提醒', time: 1, stress: 0, stamina: 0, records: 1, safety: crit ? -10 : 3,
-          hint: crit ? `漏報了！${what}，應該立即通報醫師。` : '正確！' + okHint,
-          outcomes: crit ? [{ p: 0.6, event: crit.follow, delayMin: 45, toast: `⚠️【病房 ${p.assignedRoom}】${crit.name}未處理，病況可能惡化…` }] : undefined },
-        { keyTag: 'C', text: '等醫師查房自己看報告就好', time: 0, stress: 0, stamina: 0, records: 0, safety: crit ? -15 : -2,
-          hint: crit ? `漏報了！${what}，危急值不能等查房。` : '沒有危急值，但報告還是要看過、記錄下來。',
-          outcomes: crit ? [{ p: 0.8, event: crit.follow, delayMin: 40, toast: `⚠️【病房 ${p.assignedRoom}】${crit.name}未處理，病況可能惡化…` }] : undefined }
+        { keyTag: 'A', text: '有極高／極低：立即電話通報醫師危急值，依醫囑馬上處理並完成通報紀錄', time: 5, stress: 3, stamina: -1, records: 1,
+          safety: kind === 'crit' ? 8 : (kind === 'abn' ? -2 : -3), favor: kind === 'crit' ? 0 : -5, hint: H.A[kind] },
+        { keyTag: 'B', text: '有偏高／偏低：報告醫師異常數值，寫進護理紀錄、交班時提醒', time: 2, stress: 1, stamina: 0, records: 1,
+          safety: kind === 'crit' ? -6 : (kind === 'abn' ? 4 : -1), favor: kind === 'normal' ? -2 : 0, hint: H.B[kind], outcomes: follow(0.4, 45) },
+        { keyTag: 'C', text: '全部正常：記錄報告已看過即可', time: 1, stress: 0, stamina: 0, records: 0,
+          safety: kind === 'crit' ? -15 : (kind === 'abn' ? -5 : 3), hint: H.C[kind], outcomes: follow(0.8, 40) }
       ];
       return {
         id: `LAB_${p.assignedRoom}_${gameState.currentTime}`, category: 'special', title: '檢驗報告回來',
-        desc: `【病房 ${p.assignedRoom} (${p.name})】今天的血液檢驗報告出來了，請判讀是否有危急值：${table}`,
-        options, deadlineMinutes: 60, onExpire: crit ? { event: crit.follow } : undefined, _labCrit: !!crit
+        desc: `【病房 ${p.assignedRoom} (${p.name})】今天的血液檢驗報告出來了，請判讀並處理：${table}`,
+        options, deadlineMinutes: 60, onExpire: crit ? { event: crit.follow } : undefined, _labCrit: !!crit, _labKind: kind
       };
     }
 

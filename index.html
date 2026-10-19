@@ -1170,6 +1170,16 @@
     .intercom-fab { position: absolute; right: 12px; bottom: 12px; z-index: 72; background: #d97706; color: #fff; border: 2px solid #fde68a; border-radius: 999px; padding: 8px 14px; font-weight: 900; font-size: 14px; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,.45); animation: wardPulse .9s ease-in-out infinite; }
     @media (max-width: 700px) { .intercom-fab { font-size: 12.5px; padding: 6px 11px; right: 8px; bottom: 8px; } }
     .station-btn.intercom-ringing { background: #d97706 !important; animation: wardPulse .9s ease-in-out infinite; }
+    .perf-box { background: rgba(15,23,42,.6); border: 1px solid #334155; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; text-align: left; flex: none; }
+    .perf-box .pf-title { font-weight: 900; color: #e2e8f0; margin-bottom: 4px; }
+    .perf-box .pf-sec { font-size: 11.5px; color: #94a3b8; font-weight: 800; margin-top: 4px; }
+    .perf-box .pf-row { display: grid; grid-template-columns: 4.6em 1fr auto; gap: 8px; align-items: center; padding: 2px 4px; border-radius: 6px; }
+    .perf-box .pf-row.pf-focus { background: rgba(251,191,36,.12); outline: 1px solid rgba(251,191,36,.5); }
+    .perf-box .pf-lbl { color: #cbd5e1; font-weight: 800; }
+    .perf-box .pf-val { color: #f1f5f9; font-variant-numeric: tabular-nums; }
+    .perf-box .pf-tag { font-size: 11px; font-weight: 900; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+    .pf-good { background: #065f46; color: #a7f3d0; } .pf-ok { background: #78350f; color: #fde68a; } .pf-bad { background: #7f1d1d; color: #fecaca; }
+    .perf-box .pf-tip { margin-top: 6px; color: #fde68a; font-weight: 800; line-height: 1.5; }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
     /* 學姊留言 */
@@ -1408,8 +1418,9 @@
       .report-card > .report-subtitle { grid-area: sub; margin-bottom: 0; font-size: clamp(13px, min(1vw, 1.9vh), 17px); }
       .report-card > .report-rank { grid-area: rank; margin: 1.2vh 0; font-size: clamp(17px, min(1.4vw, 2.66vh), 26px); }
       .report-card > #report-unlock { grid-area: unlock; margin: 0 0 1vh !important; font-size: clamp(11.5px, min(0.85vw, 1.61vh), 15px) !important; max-height: 22vh; overflow-y: auto; }
-      .report-card > .rep-review { grid-area: review; margin: 0; min-height: 0; display: flex; flex-direction: column; }
-      .report-card > .rep-review .rv-details { min-height: 0; max-height: 100%; overflow-y: auto; }
+      .report-card > .rep-review { grid-area: review; margin: 0; min-height: 0; overflow-y: auto; }   /* 表現分析＋交班回顧一起在這塊捲動 */
+      .report-card > .rep-review .rv-details { max-height: none; overflow: visible; }
+      .report-card .perf-box { font-size: clamp(12px, min(0.85vw, 1.6vh), 13.5px); padding: 6px 10px; }
       .report-card > .rep-btns { grid-area: btns; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .8vw; margin-top: 1.2vh; }
       .report-card > .rep-btns .restart-btn { margin: 0; padding: 1.6vh .6vw; font-size: clamp(12px, min(0.95vw, 1.8vh), 16px); }
       .report-card > .report-stats-grid { grid-area: stats; margin: 0; min-height: 0; grid-auto-rows: minmax(0, 1fr); gap: 1.2vh 1vw; }
@@ -3163,6 +3174,7 @@
     // 逾時後果（特殊／緊急事件的 deadlineMinutes 到點）
     function handleEventExpiry(ev) {
       const x = ev.data.onExpire, p = ev.patient;
+      if (ev.data.category === 'emergent') gameState._emMissed = (gameState._emMissed || 0) + 1;   // 表現分析
       gameState.pendingEvents = gameState.pendingEvents.filter(e => e !== ev);
       if (p && p.isWard) {
         if (x && x.cancelAdmission && ev.data.admitEntry) {   // 急診來電逾時未接：本次入院取消，床位回到空床可重新抽選
@@ -9011,6 +9023,17 @@
         const sh = Object.assign({}, c0.shifts || {}); sh[gameState.currentShift] = (sh[gameState.currentShift] || 0) + 1;
         col.cared[id] = { n: c0.n + 1, first: c0.first || new Date().toLocaleDateString('zh-TW'), shifts: sh };
       });
+      // 測試紀錄：各班別的遊玩次數、完成率、遊玩時間、失敗原因與最該改進項目
+      try {
+        const sk = gameState.isIntern ? 'intern' : gameState.currentShift;
+        const bs = col.stats.byShift = col.stats.byShift || {};
+        const b = bs[sk] = bs[sk] || { played: 0, cleared: 0, realMin: 0, fails: {}, focus: {} };
+        b.played += 1; if (!isFailure) b.cleared += 1;
+        b.realMin += Math.max(0, Math.round((Date.now() - (gameState._runStartMs || Date.now())) / 6000) / 10);
+        if (isFailure) b.fails[ending.name] = (b.fails[ending.name] || 0) + 1;
+        const pf = gameState._lastPerf || perfAnalysis(isFailure, reason);
+        if (pf && pf.focus) b.focus[pf.focus] = (b.focus[pf.focus] || 0) + 1;
+      } catch (err) { }
       // 感謝卡
       const newCards = awardThankCards(isFailure);
       if (newCards.length) { col.cards = newCards.concat(col.cards || []).slice(0, 200); col.stats.cards = (col.stats.cards || 0) + newCards.length; }
@@ -9072,7 +9095,13 @@
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
         ${chip('白班 成功', cb.day || 0)}${chip('小夜 成功', cb.evening || 0)}${chip('大夜 成功', cb.night || 0)}</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-        ${chip('個案×班別 照護進度（地下阿長）', `${underbossDone}/${PATIENT_POOL.length * 3}`)}</div>`;
+        ${chip('個案×班別 照護進度（地下阿長）', `${underbossDone}/${PATIENT_POOL.length * 3}`)}</div>
+        <div style="margin-top:14px; font-size:12.5px; font-weight:800; color:#e2e8f0;">🧪 測試紀錄（各班別）</div>
+        <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; color:#e2e8f0;">
+          <tr style="color:#94a3b8; text-align:left;"><th style="padding:4px 6px;">班別</th><th>次數</th><th>完成率</th><th>平均遊玩（分鐘）</th><th>最常見失敗</th><th>最常需要改進</th></tr>
+          ${playtestRows(col).map(r => `<tr style="border-top:1px solid #334155;"><td style="padding:4px 6px; font-weight:800;">${r.label}</td><td>${r.played}</td><td>${r.rate}</td><td>${r.avgMin}</td><td>${r.fail}</td><td>${r.focus}</td></tr>`).join('')}
+        </table></div>
+        <button type="button" class="hud-btn" style="margin-top:10px;" onclick="copyPlaytestLog()">📋 複製測試紀錄</button>`;
 
       // 稱號
       const got = ACHIEVEMENTS.filter(a => col.ach[a.id]).length;
@@ -9113,6 +9142,29 @@
       setLabel('endings', `📕 結局 ${list.filter(e => col.endings[e.id]).length}/${list.length}`);
       setLabel('ach', `🏅 稱號 ${got}/${ACHIEVEMENTS.length}`);
       setLabel('cards', `💌 感謝卡 ${(col.cards || []).length}`);
+    }
+
+    const SHIFT_LABEL = { intern: '實習班', day: '白班', evening: '小夜', night: '大夜' };
+    const FOCUS_LABEL = { clinical: '臨床判斷', emergent: '突發應變', time: '時間安排', self: '照顧自己', records: '護理紀錄' };
+    function playtestRows(col) {
+      const bs = (col.stats && col.stats.byShift) || {};
+      return ['intern', 'day', 'evening', 'night'].map(k => {
+        const b = bs[k] || { played: 0, cleared: 0, realMin: 0, fails: {}, focus: {} };
+        const top = o => { const e = Object.entries(o || {}).sort((x, y) => y[1] - x[1])[0]; return e ? `${e[0]}（${e[1]}）` : '—'; };
+        const topF = Object.entries(b.focus || {}).sort((x, y) => y[1] - x[1])[0];
+        return { k, label: SHIFT_LABEL[k], played: b.played, rate: b.played ? Math.round(b.cleared / b.played * 100) + '%' : '—',
+          avgMin: b.played ? (b.realMin / b.played).toFixed(1) : '—', fail: top(b.fails), focus: topF ? `${FOCUS_LABEL[topF[0]] || topF[0]}（${topF[1]}）` : '—' };
+      });
+    }
+    function copyPlaytestLog() {
+      const col = loadCollection();
+      const lines = ['《學姊我的病人好像怪怪的》測試紀錄 ' + new Date().toLocaleString('zh-TW'), '班別｜次數｜完成率｜平均遊玩分鐘｜最常見失敗｜最常需要改進'];
+      playtestRows(col).forEach(r => lines.push(`${r.label}｜${r.played}｜${r.rate}｜${r.avgMin}｜${r.fail}｜${r.focus}`));
+      lines.push(`累計值班 ${col.stats.played}｜成功交班 ${col.stats.cleared}｜感謝卡 ${col.stats.cards || 0}`);
+      const text = lines.join('\n');
+      const done = () => showToast('📋 測試紀錄已複製，可以貼給開發者。');
+      try { navigator.clipboard.writeText(text).then(done).catch(() => { window.prompt('複製下面的測試紀錄：', text); }); }
+      catch (e) { window.prompt('複製下面的測試紀錄：', text); }
     }
     let _collResetArmed = false;
     function resetCollection() {
@@ -9305,6 +9357,8 @@
       gameState._anxTotal = 0;     // 交班倒數焦慮累計
       gameState.vitalGraceUntil = 0;   // 搶救保護
       gameState._internSeen = {}; gameState._internNag = {};   // 實習班學姊提示
+      gameState._emResp = []; gameState._emMissed = 0; gameState._minStam = 100; gameState._minHyd = 100; gameState._runStartMs = Date.now();   // 表現分析
+      gameState._internHold = []; gameState._drillDone = false;   // 實習班階段
       try { _seniorSayQ = []; const _ss = document.getElementById('senior-say'); if (_ss) _ss.remove(); } catch (e) { }
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
       gameState.labQueue = [];
@@ -9503,7 +9557,7 @@
         if (d) timedCandidates.push({ time: t, patient: pt, data: d });
       });
       // 呼叫鈴（可用對講機處理）：每班固定幾次
-      const callN = gameState.isIntern ? 1 : (CALLBELL_PER_SHIFT[shift] || 0);
+      const callN = gameState.isIntern ? 0 : (CALLBELL_PER_SHIFT[shift] || 0);   // 實習班的呼叫鈴在 11:00 練習裡
       for (let i = 0; i < callN; i++) {
         const pt = pickPt(); if (!pt) break;
         const t = startTime + 30 + Math.floor(Math.random() * Math.max(1, endTime - startTime - 90));
@@ -9515,9 +9569,11 @@
       // 實習班固定教學點：10:00 量 VS 發現發燒、13:30 中性球低下發燒（突發），讓學姊有機會帶一次
       if (gameState.isIntern) {
         const ps = [...gameState.activePatients].sort(() => Math.random() - 0.5);
-        [[600, 'SPECIAL_VITAL_FEVER', ps[0]], [810, 'EMERGENT_NEUTROPENIC_FEVER', ps[1]]].forEach(([t, eid, pt]) => {
+        [[600, 'SPECIAL_VITAL_FEVER', ps[0]], [660, 'CALL_AC', ps[2], 'low'], [660, 'SPECIAL_VITAL_BRADY', ps[3], 'high'], [810, 'EMERGENT_NEUTROPENIC_FEVER', ps[1]]].forEach(([t, eid, pt, drill]) => {
           const d = pt && resolveEventFromTemplate({ eventId: eid, id: `${eid}_INTERN_${pt.assignedRoom}`, probability: 1 }, pt);
-          if (d) timedCandidates.push({ time: t, patient: pt, data: d });
+          if (!d) return;
+          if (drill) { d._drill = drill; if (eid.startsWith('CALL_')) d.callbell = true; }
+          timedCandidates.push({ time: t, patient: pt, data: d });
         });
       }
 
@@ -10410,6 +10466,11 @@
       if (p && p.isDischarged && !p._admitting) return;
       const data = evObj.data;
       const category = data.category || (data.id?.startsWith("ROUTINE") ? "routine" : (evObj.isRandom ? "emergent" : "special"));
+      // 實習班第一階段（10:00 前）只有常規：其他事件先擋下，之後分批放出
+      if (gameState.isIntern && gameState.currentTime < INTERN.calmUntil && category !== 'routine' && !String(data.id || '').includes('_INTERN_')) {
+        (gameState._internHold = gameState._internHold || []).push(evObj);
+        return;
+      }
       evObj.data.category = category;
       data.spawnTime = gameState.currentTime;
       data.alarmSpawnTime = gameState.currentTime;
@@ -10619,7 +10680,7 @@
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
        偏高、偏低 → 報告醫師即可；極高、極低（危急值）→ 需馬上通報並處理。
        門檻為遊戲設定（各院規定不同）。危急值沒馬上處理 → 之後可能演變成相關急症／特殊事件。 */
-    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 3, from: 540, to: 840 }, intern: { n: 1, from: 570, to: 780 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班（含抽血班）3 份
+    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 3, from: 540, to: 840 }, intern: { n: 1, from: 630, to: 780 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班（含抽血班）3 份
     const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
@@ -10931,7 +10992,7 @@
       });
     }
     /* ===== 實習班（新人試用期）：白班 08:00、只顧 4 床、學姊隨行提醒；突發較少、體力水分掉得慢、交班焦慮減半 ===== */
-    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, hydrationMult: 0.6, anxietyMult: 0.5 };
+    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, hydrationMult: 0.6, anxietyMult: 0.5, calmUntil: 600, releaseFrom: 690, releaseEvery: 20 };   // 10:00 前只有常規；被擋下的事件 11:30 起每 20 分鐘放一件
     const INTERN_TIPS = {
       start: '今天我跟著你，你先顧 003、005、012、013 這 4 床就好。房卡亮起來就走過去，有事我會在旁邊提醒你。',
       cat: {
@@ -10961,16 +11022,55 @@
       water: '你嘴唇都乾了，先回護理站喝口水。',
       stamina: '你臉色好差，有空回護理站歇一下，或吃點東西。',
       records: '紀錄欠太多了，有空回護理站補一補，不然下班走不了。',
-      handover: '快交班了，手上的事情先收一收，紀錄也記得補。'
+      handover: '快交班了，手上的事情先收一收，紀錄也記得補。',
+      stage2: '常規做得不錯。接下來會開始有需要你判斷的事情，看到橘框先讀清楚病人怎麼了再選。',
+      callbell: '呼叫鈴的小事可以回護理站用對講機處理，不用每次都跑過去；胸悶這種要親自去看。',
+      priority: '兩件事同時來了！先想哪一件會危及病人，那件先處理；另一件可以等，或用對講機先回應。',
+      drillGood: '很好，先處理會危及病人的那件。冷氣那種小事，等一下用對講機回就好。',
+      drillBad: '先處理冷氣那床？心跳 38 那床比較危險，下次先處理會危及病人的那件。'
     };
+
+    // 實習班階段：10:00 進入第二階段的提醒；11:30 起把第一階段擋下的事件每 20 分鐘放出一件
+    function internStageTick(t0, t1) {
+      if (t0 < INTERN.calmUntil && t1 >= INTERN.calmUntil) seniorSay('stage2', INTERN_TIPS.stage2);
+      const q = gameState._internHold || [];
+      if (!q.length || t1 < INTERN.releaseFrom) return;
+      const last = gameState._internLastRelease || 0;
+      if (t1 - last < INTERN.releaseEvery && last) return;
+      const ev = q.shift(); gameState._internLastRelease = t1;
+      if (ev && ev.patient && !ev.patient.isDead && !ev.patient.isDischarged) ringRoomAlarm({ ...ev, time: t1 });
+    }
+    // 11:00 優先順序練習：同時響起「冷氣好冷」和「心跳 38」，看玩家先處理哪一件
+    function internDrillCheck(d, p, viaIntercom) {
+      if (!gameState.isIntern || !d || !d._drill || gameState._drillDone) return;
+      if (d._drill === 'low' && viaIntercom) return;   // 先用對講機回應小事、再去處理危險的那床，也是好的分流
+      gameState._drillDone = true;
+      const good = d._drill === 'high';
+      seniorSay(good ? 'drillGood' : 'drillBad', good ? INTERN_TIPS.drillGood : INTERN_TIPS.drillBad);
+      (gameState.decisionLog = gameState.decisionLog || []).push({
+        t: gameState.currentTime, room: p ? p.assignedRoom : '', name: p ? p.name : '', cat: 'drill', title: '優先順序練習：兩件事同時來',
+        chosen: good ? '先處理心跳 38 的病人' : '先處理冷氣太冷', best: '先處理心跳 38 的病人', grade: good ? 'best' : 'bad',
+        hint: '心搏過緩可能危及生命，要先處理；冷氣太冷可以等，或用對講機請家屬調整。'
+      });
+    }
     let _seniorSayQ = [], _seniorSayTimer = null;
+    const SENIOR_URGENT = new Set(['priority', 'drillGood', 'drillBad', 'stage2', 'cat_emergent', 'start']);
     function seniorSay(key, text) {
       if (!gameState.isIntern || !text) return;
       const seen = gameState._internSeen = gameState._internSeen || {};
       if (key && seen[key]) return;
       if (key) seen[key] = 1;
+      _seniorSayPush(text, SENIOR_URGENT.has(key));
+    }
+    // 提示佇列：同一句不重複排隊；最多排 2 句；重要的（同時來的事件、練習回饋）插隊馬上說
+    function _seniorSayPush(text, urgent) {
+      if (_seniorSayQ.includes(text)) return;
+      const cur = document.getElementById('senior-say');
+      if (cur && cur.dataset.text === text) return;
+      if (urgent) { _seniorSayQ.unshift(text); _seniorSayNext(); return; }
       _seniorSayQ.push(text);
-      if (!document.getElementById('senior-say')) _seniorSayNext();
+      if (_seniorSayQ.length > 2) _seniorSayQ.splice(0, _seniorSayQ.length - 2);
+      if (!cur) _seniorSayNext();
     }
     function _seniorSayNext() {
       const vp = document.getElementById('viewport'); if (!vp) return;
@@ -10978,7 +11078,7 @@
       if (_seniorSayTimer) { clearTimeout(_seniorSayTimer); _seniorSayTimer = null; }
       const text = _seniorSayQ.shift(); if (!text || gameState.isGameOver) { _seniorSayQ = []; return; }
       const el = document.createElement('div'); el.id = 'senior-say'; el.className = 'senior-say'; el.title = '點一下關閉';
-      el.innerHTML = `<span class="ss-badge">學姊</span><span>${text}</span><span class="ss-x">✕</span>`;
+      el.innerHTML = `<span class="ss-badge">學姊</span><span>${text}</span><span class="ss-x">✕</span>`; el.dataset.text = text;
       el.onclick = () => _seniorSayNext();
       vp.appendChild(el);
       _seniorSayTimer = setTimeout(_seniorSayNext, Math.max(7000, text.length * 220));
@@ -10994,13 +11094,15 @@
       return t ? `<div class="senior-say-inline"><b>學姊小聲說：</b>${t}</div>` : '';
     }
     function internOnAlarm(data, category) {
+      if (data && data._drill) { seniorSay('priority', INTERN_TIPS.priority); return; }
+      if (data && data.callbell) { seniorSay('callbell', INTERN_TIPS.callbell); return; }
       if (INTERN_TIPS.cat[category]) seniorSay('cat_' + category, INTERN_TIPS.cat[category]);
     }
     function internStatNag() {
       if (gameState.isGameOver) return;
       const nag = gameState._internNag = gameState._internNag || {}, t = gameState.currentTime;
       const ok = k => !(nag[k] && t - nag[k] < 60);   // 同一件事 60 分鐘內只提醒一次
-      const say = (k, txt) => { if (!ok(k)) return; nag[k] = t; _seniorSayQ.push(txt); if (!document.getElementById('senior-say')) _seniorSayNext(); };
+      const say = (k, txt) => { if (!ok(k)) return; nag[k] = t; _seniorSayPush(txt, false); };
       if (gameState.hydration < 40) say('water', INTERN_TIPS.water);
       if (gameState.stamina < 35) say('stamina', INTERN_TIPS.stamina);
       if (gameState.records >= 5) say('records', INTERN_TIPS.records);
@@ -11043,11 +11145,73 @@
         const sc = pool.map(decisionScore), mx = Math.max(...sc), mn = Math.min(...sc), my = decisionScore(opt);
         const best = pool[sc.indexOf(mx)];
         const grade = mx === mn ? 'na' : (my >= mx ? 'best' : ((my <= mn || my < 0) ? 'bad' : 'ok'));
-        (gameState.decisionLog = gameState.decisionLog || []).push({
+        const entry = {
           t: gameState.currentTime, room: p ? p.assignedRoom : '護理站', name: p ? p.name : '', cat: d.category,
           title: d.title || '', chosen: swapSenior(stripParenText(opt.text || '')), best: swapSenior(stripParenText(best.text || '')), grade, hint: optionHintFor(d, opt)
-        });
+        };
+        (gameState.decisionLog = gameState.decisionLog || []).push(entry);
+        return entry;
       } catch (e) { }
+      return null;
+    }
+
+    /* ===== 結算「表現分析」：把臨床判斷和工作表現分開，並指出這班最該改進的地方 ===== */
+    function perfAnalysis(isFailure, reason) {
+      const r = String(reason || '');
+      const log = gameState.decisionLog || [];
+      const dec = log.filter(x => x.cat !== 'routine' && x.grade !== 'na');
+      const nB = dec.filter(x => x.grade === 'best').length, nO = dec.filter(x => x.grade === 'ok').length, nX = dec.filter(x => x.grade === 'bad').length;
+      const acc = dec.length ? Math.round(nB / dec.length * 100) : null;
+      const resp = gameState._emResp || [], avgR = resp.length ? Math.round(resp.reduce((a, b) => a + b, 0) / resp.length) : null, maxR = resp.length ? Math.max(...resp) : null;
+      const missed = gameState._emMissed || 0;
+      const late = log.filter(x => x.cat === 'routine').length;
+      const ot = Math.max(0, gameState.currentTime - gameState.shiftEndTime);
+      const minS = gameState._minStam ?? gameState.stamina, minH = gameState._minHyd ?? Math.round(gameState.hydration);
+      const rec = gameState.records || 0;
+      const lv = (good, ok) => good ? 'good' : (ok ? 'ok' : 'bad');
+      const rows = [
+        { key: 'clinical', label: '臨床判斷', val: dec.length ? `✅ ${nB}　⚠️ ${nO}　❌ ${nX}（選對 ${acc}%）` : '這班沒有需要判斷的事件', lv: dec.length ? lv(nX === 0 && acc >= 80, nX <= 1) : 'good' },
+        { key: 'emergent', label: '突發應變', val: resp.length || missed ? `${avgR !== null ? `平均 ${avgR} 分鐘趕到（最慢 ${maxR} 分）` : '沒有趕到任何一件'}${missed ? `｜逾時 ${missed} 件` : ''}` : '這班沒有突發事件', lv: (resp.length || missed) ? lv(missed === 0 && (avgR ?? 99) <= 5, missed === 0 && (avgR ?? 99) <= 12) : 'good' },
+        { key: 'time', label: '時間安排', val: `常規逾時 ${late} 件｜加班 ${ot} 分鐘`, lv: lv(late === 0 && ot <= 30, late <= 2 && ot <= 120) },
+        { key: 'self', label: '照顧自己', val: `體力最低 ${minS}%｜水分最低 ${minH}%`, lv: lv(Math.min(minS, minH) >= 30, Math.min(minS, minH) >= 15) },
+        { key: 'records', label: '護理紀錄', val: `交班時還欠 ${rec} 筆`, lv: lv(rec <= 2, rec <= 5) }
+      ];
+      const tips = {
+        clinical: nX ? `有 ${nX} 題選得有風險，下方交班回顧有每一題的解析。` : '有幾題可以選得更好，看一下下方交班回顧的解析。',
+        emergent: missed ? `有 ${missed} 件突發事件逾時沒處理。紅框響起時，先放下手邊的事趕過去。` : `紅框響起後平均 ${avgR} 分鐘才到，聽到警報要先放下手邊的事。`,
+        time: late ? `常規逾時 ${late} 件。給藥、量 V/S 到點後 2 小時內要完成，空檔時先把常規做掉。` : `加班 ${ot} 分鐘，空檔時先把常規和紀錄做掉，交班前比較不會塞車。`,
+        self: minS <= minH ? `體力一度掉到 ${minS}%，有空檔就回護理站小歇或吃東西。` : `水分一度掉到 ${minH}%，經過護理站就順手喝水。`,
+        records: `紀錄欠 ${rec} 筆，空檔時回護理站補，不然會變成無償加班。`
+      };
+      // 失敗原因優先決定「最該改進」
+      let focus = null, focusText = '';
+      if (isFailure) {
+        if (/過勞昏倒/.test(r)) { focus = 'self'; focusText = `體力歸零倒下了。體力一度剩 ${minS}%，有空檔就回護理站小歇、吃東西，便當和珍奶可以先買好。`; }
+        else if (/膀胱炎/.test(r)) { focus = 'self'; focusText = '水分耗盡了。經過護理站就順手喝水，或上班前買好飲料。'; }
+        else if (/崩潰離職/.test(r)) { focus = 'time'; focusText = '壓力爆表了。事情越拖到交班前壓力越大，空檔先把常規做掉；護手霜和咖啡也能減壓。'; }
+        else if (/重大醫療疏失|致命醫療事故/.test(r)) { focus = 'clinical'; focusText = '病人安全掉太多了。下方交班回顧有每一題的解析，先看選錯的那幾題。'; }
+        else if (/護理長強制交班/.test(r)) { focus = 'time'; focusText = '加班 8 小時還做不完。空檔時先把常規和紀錄做掉，不要全部留到最後。'; }
+        else if (/家屬毆打|家屬與護理人員|護病衝突/.test(r)) { focus = 'time'; focusText = '病房事件和家屬的事也有時限，回護理站時順手處理，不要放太久。'; }
+        else { focus = 'emergent'; focusText = '突發事件拖太久了。紅框一響，先放下手邊的事趕過去。'; }
+      } else {
+        const order = ['clinical', 'emergent', 'time', 'self', 'records'];
+        const pick = order.find(k => rows.find(x => x.key === k).lv === 'bad') || order.find(k => rows.find(x => x.key === k).lv === 'ok');
+        if (pick) { focus = pick; focusText = tips[pick]; }
+      }
+      return { rows, focus, focusText: focusText || '這班表現很穩，繼續保持！', acc };
+    }
+    function renderPerfAnalysis(isFailure, reason) {
+      const box = document.getElementById('rep-review'); if (!box) return;
+      const a = perfAnalysis(isFailure, reason);
+      gameState._lastPerf = a;
+      const tag = { good: ['好', 'pf-good'], ok: ['普通', 'pf-ok'], bad: ['待加強', 'pf-bad'] };
+      const row = x => `<div class="pf-row${a.focus === x.key ? ' pf-focus' : ''}"><span class="pf-lbl">${x.label}</span><span class="pf-val">${x.val}</span><span class="pf-tag ${tag[x.lv][1]}">${tag[x.lv][0]}</span></div>`;
+      const clin = a.rows.filter(x => x.key === 'clinical'), work = a.rows.filter(x => x.key !== 'clinical');
+      const html = `<div class="perf-box"><div class="pf-title">📊 這班表現分析</div>
+        <div class="pf-sec">🧠 臨床判斷</div>${clin.map(row).join('')}
+        <div class="pf-sec">⏱️ 工作表現</div>${work.map(row).join('')}
+        <div class="pf-tip">👉 這班最該改進：${a.focusText}</div></div>`;
+      box.insertAdjacentHTML('afterbegin', html);
     }
     function renderDecisionReview() {
       const box = document.getElementById('rep-review'); if (!box) return;
@@ -11090,7 +11254,15 @@
         return;
       }
 
-      logDecision(opt, p);
+      const _dlog = logDecision(opt, p);
+      const _evData = gameState.activeEvent && gameState.activeEvent.data;
+      // 表現分析：突發事件從響起到處理的時間（每個事件只記一次）
+      if (_wasEmergent && _evData && !_evData._respLogged && !(opt.isBedsoreD || opt.isRespFailD || opt.isOnEndoB || opt.isCritHypoD || opt.isCritHyperD)) {
+        _evData._respLogged = true;
+        const _st = _evData.alarmSpawnTime || _evData.spawnTime || gameState.currentTime;
+        (gameState._emResp = gameState._emResp || []).push(Math.max(0, gameState.currentTime - _st));
+      }
+      try { internDrillCheck(_evData, p, _wasIntercom); } catch (e) { }
       if (_wasEmergent && !(opt.isBedsoreD || opt.isRespFailD || opt.isOnEndoB || opt.isCritHypoD || opt.isCritHyperD)) startVitalGrace(timeCost);   // 搶救保護：處置期間＋之後 15 分鐘，體力/水分最低 5%
 
       // 選項給道具（例：家屬致謝的鳳梨酥）
@@ -11122,7 +11294,9 @@
           }
         }
       }
-      if (opt.hint) _hints.unshift(opt.hint);
+      // 選完立即回饋：✅ 正確／⚠️ 可以更好／❌ 有風險 ＋ 解析
+      { const _h = (_dlog && _dlog.hint) || opt.hint || '';
+        if (_h) { const _mk = _dlog ? ({ best: '✅ ', ok: '⚠️ ', bad: '❌ ' }[_dlog.grade] || '') : ''; _hints.unshift(_mk + _h); } }
 
       if (opt.isBedsoreA) {
         if (Math.random() < 0.40) {
@@ -11502,6 +11676,7 @@
       const _t0 = gameState.currentTime;
       gameState.currentTime += minutes;
       try { checkClockMilestones(_t0, gameState.currentTime); } catch (e) { }
+      if (gameState.isIntern) { try { internStageTick(_t0, gameState.currentTime); } catch (e) { } }
       runAdmissionDrawsBetween(_t0, gameState.currentTime);   // 入院抽選（每 30 分鐘）
       fireDueScheduledEvents(false);   // 個案排程：到點觸發
       processDelayedEvents();          // 事件延伸：到點觸發
@@ -12034,6 +12209,10 @@
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
       try { applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); updateIntercomBtn(); } catch (e) { }
+      if (!gameState.isGameOver) {   // 表現分析：本班體力、水分最低點
+        gameState._minStam = Math.min(gameState._minStam ?? 100, gameState.stamina);
+        gameState._minHyd = Math.min(gameState._minHyd ?? 100, Math.round(gameState.hydration));
+      }
       if (gameState.isIntern) { try { internStatNag(); } catch (e) { } }
       const h = Math.floor(gameState.currentTime / 60) % 24;
       const m = gameState.currentTime % 60;
@@ -12509,6 +12688,7 @@
       else SoundFX.playSuccess();
 
       try { renderDecisionReview(); } catch (e) { }
+      try { renderPerfAnalysis(isFailure, reason); } catch (e) { console.warn('perf', e); }
       try { renderSeniorComment(isFailure, reason); } catch (e) { }
       const overlay = document.getElementById("report-overlay");
       const titleEl = document.getElementById("report-main-title");

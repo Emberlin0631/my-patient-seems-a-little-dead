@@ -1323,7 +1323,7 @@
       #start-screen-wrapper { max-width: none; margin: 0 !important; width: calc(100vw - 20px); height: calc(100vh - 20px); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
       #start-screen-wrapper .chart-tab { padding: 12px 4vw 10px; font-size: 13px; }
       #start-screen-wrapper .start-card {
-        flex: 1; min-height: 0; overflow: hidden;
+        flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto;
         display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
         grid-template-rows: auto auto auto 1fr auto auto;
         grid-template-areas: "head shift" "name shift" "gender shift" "notes shift" "tool go" "disc go";
@@ -1335,26 +1335,26 @@
       .start-card > .ig-shift { grid-area: shift; margin: 0; display: flex; flex-direction: column; min-height: 0; }
       .start-card > .ig-shift > div { flex: 1; min-height: 0; justify-content: space-between; gap: 1.6vh !important; }
       .start-card > .ig-shift .shift-card-btn { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 1.4vh 1.6vw; }
-      .start-card > .ig-shift .shift-card-title { font-size: clamp(16px, 1.5vw, 22px); }
-      .start-card > .ig-shift .shift-desc-text { font-size: clamp(13px, 1.05vw, 16px); line-height: 1.6; margin-top: .6vh; }
-      .start-card > .start-action-btn { grid-area: go; align-self: end; margin: 0; padding: 2.2vh 0; font-size: clamp(20px, 1.8vw, 28px); }
+      .start-card > .ig-shift .shift-card-title { font-size: clamp(16px, min(1.5vw, 2.85vh), 22px); }
+      .start-card > .ig-shift .shift-desc-text { font-size: clamp(13px, min(1.05vw, 1.99vh), 16px); line-height: 1.6; margin-top: .6vh; }
+      .start-card > .start-action-btn { grid-area: go; align-self: end; margin: 0; padding: 2.2vh 0; font-size: clamp(20px, min(1.8vw, 3.42vh), 28px); }
       .start-card > .start-notes { grid-area: notes; align-self: end; margin: 0; }
       .start-card > .start-toolbar { grid-area: tool; margin: 0; }
       .start-card > .disclaimer { grid-area: disc; margin: 0; }
-      .start-logo { font-size: clamp(34px, 3.2vw, 52px); max-width: none; }
-      .start-subtitle { font-size: clamp(14px, 1.1vw, 18px); }
-      .ecg-line { width: 260px; height: 26px; }
+      .start-logo { font-size: clamp(34px, min(3.2vw, 6.08vh), 52px); max-width: none; }
+      .start-subtitle { font-size: clamp(14px, min(1.1vw, 2.09vh), 18px); }
+      .ecg-line { width: 260px; height: clamp(16px, 3vh, 26px); }
       .start-header { margin-bottom: 1vh; }
       .start-card > .start-notes { align-self: center; }
-      #start-screen-wrapper .input-label { font-size: clamp(12px, 0.95vw, 17px); margin-bottom: .8vh; }
-      #start-screen-wrapper .text-input { font-size: clamp(14px, 1.05vw, 19px); padding: 1.4vh 1vw; }
-      #start-screen-wrapper .select-btn { font-size: clamp(13px, 1.05vw, 18px); padding: 1.6vh 1vw; }
-      #start-screen-wrapper .start-notes p { font-size: clamp(12px, 0.95vw, 17px) !important; line-height: 1.7; }
-      #start-screen-wrapper .toolbar-link, #start-screen-wrapper .sound-toggle-btn { font-size: clamp(12px, 0.95vw, 16px); }
-      #start-screen-wrapper .disclaimer-strong { font-size: clamp(11.5px, 0.85vw, 15px); padding: 1.2vh 1vw; }
-      #start-screen-wrapper .disclaimer-strong strong { font-size: clamp(12.5px, 0.95vw, 16px); }
-      #start-screen-wrapper .shift-bed-tag { font-size: clamp(11px, 0.85vw, 14px); }
-      #start-screen-wrapper .lang-btn { font-size: clamp(12px, 0.9vw, 16px); }
+      #start-screen-wrapper .input-label { font-size: clamp(12px, min(0.95vw, 1.8vh), 17px); margin-bottom: .8vh; }
+      #start-screen-wrapper .text-input { font-size: clamp(14px, min(1.05vw, 1.99vh), 19px); padding: 1.4vh 1vw; }
+      #start-screen-wrapper .select-btn { font-size: clamp(13px, min(1.05vw, 1.99vh), 18px); padding: 1.6vh 1vw; }
+      #start-screen-wrapper .start-notes p { font-size: clamp(12px, min(0.95vw, 1.8vh), 17px) !important; line-height: 1.7; }
+      #start-screen-wrapper .toolbar-link, #start-screen-wrapper .sound-toggle-btn { font-size: clamp(12px, min(0.95vw, 1.8vh), 16px); }
+      #start-screen-wrapper .disclaimer-strong { font-size: clamp(11.5px, min(0.85vw, 1.61vh), 15px); padding: 1.2vh 1vw; }
+      #start-screen-wrapper .disclaimer-strong strong { font-size: clamp(12.5px, min(0.95vw, 1.8vh), 16px); }
+      #start-screen-wrapper .shift-bed-tag { font-size: clamp(11px, min(0.85vw, 1.61vh), 14px); }
+      #start-screen-wrapper .lang-btn { font-size: clamp(12px, min(0.9vw, 1.71vh), 16px); }
     }
     /* 遊戲畫面：電腦橫向 → 外框填滿視窗；地圖維持 16:9 置中（房卡、走路座標、背景圖才會對齊），左右多出的地方用地板色補 */
     @media (min-width: 1000px) and (min-height: 560px) and (orientation: landscape) {
@@ -1367,19 +1367,19 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); column-gap: 2vw;
         grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto;
         grid-template-areas: "title stats" "sub stats" "rank stats" "senior stats" "unlock stats" "review stats" "btns stats"; align-content: start; }
-      .report-card > .rep-senior { grid-area: senior; margin: 0 0 1vh; font-size: clamp(13px, 1vw, 16px); }
-      .report-card > .report-title { grid-area: title; font-size: clamp(20px, 1.7vw, 30px); }
-      .report-card > .report-subtitle { grid-area: sub; margin-bottom: 0; font-size: clamp(13px, 1vw, 17px); }
-      .report-card > .report-rank { grid-area: rank; margin: 1.2vh 0; font-size: clamp(17px, 1.4vw, 26px); }
-      .report-card > #report-unlock { grid-area: unlock; margin: 0 0 1vh !important; font-size: clamp(11.5px, 0.85vw, 15px) !important; max-height: 22vh; overflow-y: auto; }
+      .report-card > .rep-senior { grid-area: senior; margin: 0 0 1vh; font-size: clamp(13px, min(1vw, 1.9vh), 16px); }
+      .report-card > .report-title { grid-area: title; font-size: clamp(20px, min(1.7vw, 3.23vh), 30px); }
+      .report-card > .report-subtitle { grid-area: sub; margin-bottom: 0; font-size: clamp(13px, min(1vw, 1.9vh), 17px); }
+      .report-card > .report-rank { grid-area: rank; margin: 1.2vh 0; font-size: clamp(17px, min(1.4vw, 2.66vh), 26px); }
+      .report-card > #report-unlock { grid-area: unlock; margin: 0 0 1vh !important; font-size: clamp(11.5px, min(0.85vw, 1.61vh), 15px) !important; max-height: 22vh; overflow-y: auto; }
       .report-card > .rep-review { grid-area: review; margin: 0; min-height: 0; display: flex; flex-direction: column; }
       .report-card > .rep-review .rv-details { min-height: 0; max-height: 100%; overflow-y: auto; }
       .report-card > .rep-btns { grid-area: btns; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .8vw; margin-top: 1.2vh; }
-      .report-card > .rep-btns .restart-btn { margin: 0; padding: 1.6vh .6vw; font-size: clamp(12px, 0.95vw, 16px); }
+      .report-card > .rep-btns .restart-btn { margin: 0; padding: 1.6vh .6vw; font-size: clamp(12px, min(0.95vw, 1.8vh), 16px); }
       .report-card > .report-stats-grid { grid-area: stats; margin: 0; min-height: 0; grid-auto-rows: minmax(0, 1fr); gap: 1.2vh 1vw; }
       .report-card .report-stat-box { display: flex; flex-direction: column; justify-content: center; padding: 1vh 1vw; min-height: 0; }
-      .report-card .report-stat-label { font-size: clamp(11px, 0.85vw, 15px); }
-      .report-card .report-stat-val { font-size: clamp(16px, 1.45vw, 26px); }
+      .report-card .report-stat-label { font-size: clamp(11px, min(0.85vw, 1.61vh), 15px); }
+      .report-card .report-stat-val { font-size: clamp(16px, min(1.45vw, 2.75vh), 26px); }
     }
     /* 購買畫面：電腦橫向 → 填滿視窗、左（薪水圖/收入/按鈕）右（道具兩欄），不需捲動 */
     @media (min-width: 1000px) and (min-height: 650px) and (orientation: landscape) {
@@ -1387,19 +1387,19 @@
       .shop-wrap { max-width: none; height: 100vh; padding: 3vh 4vw; display: grid; column-gap: 3vw; row-gap: 1.6vh;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: auto minmax(0, 1fr) auto auto auto;
         grid-template-areas: "title title" "photo items" "income items" "money items" "actions items"; }
-      .shop-wrap h2 { grid-area: title; font-size: clamp(20px, 1.8vw, 30px); margin: 0; }
+      .shop-wrap h2 { grid-area: title; font-size: clamp(20px, min(1.8vw, 3.42vh), 30px); margin: 0; }
       .shop-photo { grid-area: photo; width: 100%; height: 100%; object-fit: contain; margin: 0; min-height: 0; }
-      .shop-income { grid-area: income; margin: 0; font-size: clamp(14px, 1.1vw, 19px); padding: 1.4vh 1vw; }
-      .shop-money { grid-area: money; margin: 0; font-size: clamp(17px, 1.4vw, 24px); }
+      .shop-income { grid-area: income; margin: 0; font-size: clamp(14px, min(1.1vw, 2.09vh), 19px); padding: 1.4vh 1vw; }
+      .shop-money { grid-area: money; margin: 0; font-size: clamp(17px, min(1.4vw, 2.66vh), 24px); }
       .shop-actions { grid-area: actions; margin: 0; }
-      .shop-actions button { padding: 2vh 0; font-size: clamp(16px, 1.3vw, 22px); }
+      .shop-actions button { padding: 2vh 0; font-size: clamp(16px, min(1.3vw, 2.47vh), 22px); }
       #shop-items { grid-area: items; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(0, 1fr); gap: 1.4vh 1.2vw; }
       .shop-row { margin: 0; padding: 1.2vh 1vw; }
-      .shop-row .shop-name { font-size: clamp(14px, 1.1vw, 19px); }
-      .shop-row .shop-desc { font-size: clamp(11px, 0.85vw, 15px); line-height: 1.5; margin-top: .5vh; }
-      .shop-row .shop-price { font-size: clamp(12px, 0.95vw, 16px); margin-top: .5vh; }
-      .shop-qty button { width: clamp(30px, 2.2vw, 40px); height: clamp(30px, 2.2vw, 40px); font-size: clamp(18px, 1.4vw, 24px); }
-      .shop-qty span { font-size: clamp(14px, 1.1vw, 19px); }
+      .shop-row .shop-name { font-size: clamp(14px, min(1.1vw, 2.09vh), 19px); }
+      .shop-row .shop-desc { font-size: clamp(11px, min(0.85vw, 1.61vh), 15px); line-height: 1.5; margin-top: .5vh; }
+      .shop-row .shop-price { font-size: clamp(12px, min(0.95vw, 1.8vh), 16px); margin-top: .5vh; }
+      .shop-qty button { width: clamp(30px, min(2.2vw, 4.18vh), 40px); height: clamp(30px, min(2.2vw, 4.18vh), 40px); font-size: clamp(18px, min(1.4vw, 2.66vh), 24px); }
+      .shop-qty span { font-size: clamp(14px, min(1.1vw, 2.09vh), 19px); }
     }
   </style>
 </head>

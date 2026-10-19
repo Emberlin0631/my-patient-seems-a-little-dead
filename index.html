@@ -8968,7 +8968,7 @@
       gameState.decisionLog = [];   // 交班回顧：特殊／突發／病房事件的決策紀錄
       gameState._anxTotal = 0;     // 交班倒數焦慮累計
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
-      try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }
+      gameState.labQueue = [];
       gameState.speedLocked = false;
       ['2', '5'].forEach(k => { const b = document.getElementById(`btn-speed-${k}`); if (b) { b.disabled = false; b.style.opacity = ''; b.style.cursor = ''; } });
       gameState.admissionQueue = [];
@@ -9159,6 +9159,7 @@
       // 只保留落在本班時段 [開班, 交班) 內的排程事件
       gameState.scheduledEventsQueue = timedCandidates.filter(e => e.time >= startTime && e.time < endTime);
       gameState.isBloodDrawShift = isBloodShift;
+      try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }   // 檢驗報告（要在確定是否為抽血班之後排）
       // 壓力值起始為 0%，體力與水分起始為 100%！
       gameState.stress = 0;
       gameState.stamina = 100;
@@ -10236,7 +10237,7 @@
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
        偏高、偏低 → 報告醫師即可；極高、極低（危急值）→ 需馬上通報並處理。
        門檻為遊戲設定（各院規定不同）。危急值沒馬上處理 → 之後可能演變成相關急症／特殊事件。 */
-    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, evening: { n: 2, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };
+    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 8, from: 540, to: 840 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班抽血班 8 份
     const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
@@ -10266,7 +10267,7 @@
       const hi = r[6] != null ? r[6] : r[3] * 2; return r[3] + (hi - r[3]) * (0.08 + Math.random() * 0.3);
     }
     function scheduleLabReports(shift) {
-      const plan = LAB_PLAN[shift] || LAB_PLAN.day;
+      const plan = (shift === 'day' && gameState.isBloodDrawShift) ? LAB_PLAN.dayBlood : (LAB_PLAN[shift] || LAB_PLAN.day);
       const pats = gameState.activePatients.filter(p => !p.isDischarged && !p.isDead).sort(() => Math.random() - 0.5).slice(0, plan.n);
       gameState.labQueue = pats.map(p => ({ t: plan.from + Math.floor(Math.random() * (plan.to - plan.from)), patient: p }));
     }

@@ -10222,17 +10222,14 @@
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
       WBC: ['WBC', '×10³/μL', 4.0, 10.0, 1, 1.0, 30, 'LH'], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1, 7.0, 20, 'L'], PLT: ['PLT', '×10³/μL', 150, 400, 0, 20, 1000, 'L'],
-      Na: ['Na', 'mmol/L', 135, 145, 0, 120, 160, 'LH'], K: ['K', 'mmol/L', 3.5, 5.1, 1, 2.8, 6.0, 'LH'], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2, null, 5.0, 'H'],
-      Glu: ['Glucose', 'mg/dL', 70, 140, 0, 50, 450, 'LH']
+      Na: ['Na', 'mmol/L', 135, 145, 0, 120, 160, 'LH'], K: ['K', 'mmol/L', 3.5, 5.1, 1, 2.8, 6.0, 'LH'], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2, null, 5.0, 'H']
     };
     const LAB_CRITS = [
       { key: 'K', val: () => 6.1 + Math.random() * 0.8, rule: 'K ≥ 6.0 mmol/L', name: '高血鉀', follow: 'SPECIAL_VITAL_BRADY' },
       { key: 'K', val: () => 2.2 + Math.random() * 0.5, rule: 'K ≤ 2.8 mmol/L', name: '低血鉀', follow: 'SPECIAL_VITAL_TACHY' },
       { key: 'Hb', val: () => 5.6 + Math.random() * 1.2, rule: 'Hb ≤ 7.0 g/dL', name: '重度貧血', follow: 'SPECIAL_VITAL_HYPOTN' },
       { key: 'PLT', val: () => 4 + Math.random() * 12, rule: 'PLT ≤ 20 ×10³/μL', name: '血小板過低', follow: 'SPECIAL_VITAL_HYPOTN' },
-      { key: 'WBC', val: () => 0.3 + Math.random() * 0.6, rule: 'WBC ≤ 1.0 ×10³/μL（ANC < 500）', name: '嚴重白血球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' },
-      { key: 'Glu', val: () => 32 + Math.random() * 14, rule: 'Glucose ≤ 50 mg/dL', name: '嚴重低血糖', follow: 'EMERGENT_CRITICAL_HYPOGLYCEMIA' },
-      { key: 'Glu', val: () => 470 + Math.random() * 90, rule: 'Glucose ≥ 450 mg/dL', name: '嚴重高血糖', follow: 'EMERGENT_CRITICAL_HYPERGLYCEMIA' }
+      { key: 'WBC', val: () => 0.3 + Math.random() * 0.6, rule: 'WBC ≤ 1.0 ×10³/μL（ANC < 500）', name: '嚴重白血球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' }
     ];
     const LAB_LEVEL = { N: ['正常', ''], H: ['偏高', 'lab-H'], L: ['偏低', 'lab-L'], HH: ['極高', 'lab-HH'], LL: ['極低', 'lab-LL'] };
     function labLevel(k, x) {

@@ -10221,7 +10221,7 @@
     const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
-      WBC: ['WBC', '×10³/μL', 4.0, 10.0, 1, 1.0, 30, 'LH'], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1, 7.0, 20, 'L'], PLT: ['PLT', '×10³/μL', 150, 400, 0, 20, 1000, 'L'],
+      ANC: ['ANC', '/μL', 1500, 8000, 0, 499, null, 'LLH'], Hb: ['Hb', 'g/dL', 12.0, 16.0, 1, 7.0, 20, 'L'], PLT: ['PLT', '×10³/μL', 150, 400, 0, 20, 1000, 'L'],
       Na: ['Na', 'mmol/L', 135, 145, 0, 120, 160, 'LH'], K: ['K', 'mmol/L', 3.5, 5.1, 1, 2.8, 6.0, 'LH'], Cr: ['Cr', 'mg/dL', 0.6, 1.2, 2, null, 5.0, 'H']
     };
     const LAB_CRITS = [
@@ -10229,7 +10229,7 @@
       { key: 'K', val: () => 2.2 + Math.random() * 0.5, rule: 'K ≤ 2.8 mmol/L', name: '低血鉀', follow: 'SPECIAL_VITAL_TACHY' },
       { key: 'Hb', val: () => 5.6 + Math.random() * 1.2, rule: 'Hb ≤ 7.0 g/dL', name: '重度貧血', follow: 'SPECIAL_VITAL_HYPOTN' },
       { key: 'PLT', val: () => 4 + Math.random() * 12, rule: 'PLT ≤ 20 ×10³/μL', name: '血小板過低', follow: 'SPECIAL_VITAL_HYPOTN' },
-      { key: 'WBC', val: () => 0.3 + Math.random() * 0.6, rule: 'WBC ≤ 1.0 ×10³/μL（ANC < 500）', name: '嚴重白血球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' }
+      { key: 'ANC', val: () => 50 + Math.random() * 400, rule: 'ANC < 500 /μL', name: '嚴重嗜中性球低下', follow: 'EMERGENT_NEUTROPENIC_FEVER' }
     ];
     const LAB_LEVEL = { N: ['正常', ''], H: ['偏高', 'lab-H'], L: ['偏低', 'lab-L'], HH: ['極高', 'lab-HH'], LL: ['極低', 'lab-LL'] };
     function labLevel(k, x) {
@@ -10244,7 +10244,7 @@
     function labMildVal(k) {   // 超出參考值但未達極高／極低
       const r = LAB_REF[k], dir = r[7][Math.floor(Math.random() * r[7].length)];
       if (dir === 'L') { const lo = r[5] != null ? r[5] : r[2] * 0.5; return lo + (r[2] - lo) * (0.2 + Math.random() * 0.65); }
-      return r[3] + (r[6] - r[3]) * (0.08 + Math.random() * 0.3);
+      const hi = r[6] != null ? r[6] : r[3] * 2; return r[3] + (hi - r[3]) * (0.08 + Math.random() * 0.3);
     }
     function scheduleLabReports(shift) {
       const plan = LAB_PLAN[shift] || LAB_PLAN.day;

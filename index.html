@@ -232,6 +232,20 @@
       border-color: #4f46e5;
       box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
     }
+    .shift-card-btn.active-shift-intern {
+      background: #ecfdf5;
+      border-color: #059669;
+      box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.25);
+    }
+    .shift-intern-title { color: #065f46; }
+    .tag-intern { background: #a7f3d0; color: #065f46; }
+    /* 實習班：學姊提示 */
+    .senior-say { position: absolute; left: 12px; bottom: 12px; z-index: 74; max-width: min(460px, calc(100% - 24px)); display: flex; gap: 10px; align-items: flex-start; background: #ecfdf5; color: #064e3b; border: 2px solid #059669; border-radius: 14px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14.5px; line-height: 1.6; cursor: pointer; animation: fadeIn .2s ease-out; }
+    .senior-say .ss-badge { flex: none; background: #059669; color: #fff; font-weight: 900; font-size: 12px; border-radius: 999px; padding: 3px 9px; margin-top: 2px; }
+    .senior-say .ss-x { flex: none; color: #047857; font-size: 12px; margin-left: 4px; opacity: .8; }
+    .senior-say-inline { margin-top: 10px; background: #ecfdf5; color: #064e3b; border: 1.5px solid #059669; border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; }
+    .senior-say-inline b { color: #047857; }
+    @media (max-width: 700px) { .senior-say { font-size: 13px; top: 8px; bottom: auto; left: 8px; padding: 8px 10px; } }
 
     .shift-card-header {
       display: flex;
@@ -1552,6 +1566,22 @@
               一個人顧16床，哪床忽然有突發情形其他床就只能求神拜佛請他們不要出事。
             </div>
           </button>
+
+          <!-- 實習班 -->
+          <button
+            type="button"
+            id="btn-shift-intern"
+            class="shift-card-btn"
+            onclick="setShiftChoice('intern')"
+          >
+            <div class="shift-card-header">
+              <span class="shift-card-title shift-intern-title">🎓 實習班（08:00 起）</span>
+              <span class="shift-bed-tag tag-intern">1人顧4床</span>
+            </div>
+            <div class="shift-desc-text">
+              還沒獨立的第一天，學姊全程跟著你，只顧4床，遇到重要的事學姊會在旁邊提醒你該怎麼做。
+            </div>
+          </button>
         </div>
       </div>
 
@@ -2094,6 +2124,7 @@
       night:   { routineRate: 1 }
     };
     function tunedProb(ev, prob, shift) {
+      if (ev && ev.category === 'emergent' && gameState.isIntern) return prob * INTERN.emergentMult;   // 實習班：突發事件減少
       if (!ev || ev.category !== 'routine') return prob;
       const t = SHIFT_TUNING[shift || gameState.currentShift] || SHIFT_TUNING.day;
       return Math.max(0, Math.min(1, prob * (t.routineRate ?? 1)));
@@ -3321,7 +3352,7 @@
       let r = Math.random(), acc = 0;
       for (const b of VITAL_BRANCH_TABLE) {
         const mult = (risk[b.key] !== undefined) ? risk[b.key] : 1;
-        acc += b.p * mult * dbl;
+        acc += b.p * mult * dbl * ((gameState.isIntern && /^EMERGENT/.test(b.eventId)) ? INTERN.emergentMult : 1);
         if (r < acc) {
           gameState.records += 1;
           if (patient) {
@@ -3565,7 +3596,7 @@
           if (pt._discharging || pt._vsAbnormal) return;
           if (!(Math.random() < prob * (gameState.pineapple ? 2 : 1))) return;
           pt._discharging = true;
-        } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1))) return;
+        } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1) * ((gameState.isIntern && e.data.category === 'emergent') ? INTERN.emergentMult : 1))) return;
         if (silent) {
           const d = e.data;
           d.spawnTime = gameState.currentTime;
@@ -8867,6 +8898,7 @@
       document.getElementById('btn-shift-day').className = 'shift-card-btn' + (shift === 'day' ? ' active-shift-day' : '');
       document.getElementById('btn-shift-evening').className = 'shift-card-btn' + (shift === 'evening' ? ' active-shift-evening' : '');
       document.getElementById('btn-shift-night').className = 'shift-card-btn' + (shift === 'night' ? ' active-shift-night' : '');
+      document.getElementById('btn-shift-intern').className = 'shift-card-btn' + (shift === 'intern' ? ' active-shift-intern' : '');
     }
 
     function toggleAudio() {
@@ -8889,11 +8921,12 @@
 
     /* ===== 學姊叮嚀：第一次按「走投無路只好上班」先出現，之後可從開始畫面「📋 學姊叮嚀」再打開 ===== */
     const TIPS_KEY = 'ward24_tips_seen_';   // 每個班別各自記錄：三班第一次上班都會出現
-    const TIPS_SHIFT_NAME = { day: '白班', evening: '小夜班', night: '大夜班' };
+    const TIPS_SHIFT_NAME = { day: '白班', evening: '小夜班', night: '大夜班', intern: '實習班' };
     const TIPS_SHIFT = {
       day: '☀️ 白班：管路類的常規在班內完成就好，有空再去做，給藥、翻身、量 V/S 這些先去做。',
       evening: '🌆 小夜：很忙，記得自己帶水和零食，不要餓到了。',
-      night: '🌙 大夜：天亮會有一波給藥、偷 I/O 潮，記得要留咖啡喝，不然注意力不集中會下不了班。'
+      night: '🌙 大夜：天亮會有一波給藥、偷 I/O 潮，記得要留咖啡喝，不然注意力不集中會下不了班。',
+      intern: '🎓 實習：今天我全程跟著你，你先顧好這 4 床，遇到重要的事我會在旁邊提醒你。'
     };
     let _tipsThenShop = false;
     function openSeniorTips(thenShop) {
@@ -8915,13 +8948,13 @@
     }
 
     /* ===== 上班前道具購買 ===== */
-    const SHOP_INCOME = { day: 1343, evening: 1943, night: 2343 };   // 各班起始金額＝當班薪水
+    const SHOP_INCOME = { day: 1343, evening: 1943, night: 2343, intern: 1343 };   // 實習班薪水同白班   // 各班起始金額＝當班薪水
     const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145 };
     const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2 };   // 每樣道具購買上限（未列者不限）
     let shopCart = {}, shopLoadout = {}, shopLeft = null;
     function shopSpent() { return Object.keys(shopCart).reduce((a, k) => a + (shopCart[k] || 0) * (SHOP_PRICE[k] || 0), 0); }
     function renderShop() {
-      const sh = selectedShift, name = sh === 'day' ? '白班' : (sh === 'evening' ? '小夜班' : '大夜班');
+      const sh = selectedShift, name = TIPS_SHIFT_NAME[sh] || '白班';
       const inc = SHOP_INCOME[sh] || 0, left = inc - shopSpent();
       document.getElementById('shop-income-text').innerHTML = `根據2026年10月某中部醫院薪水，<br>你今天上${name}的收入是：<b style="color:#fbbf24">${inc} 元</b>`;
       document.getElementById('shop-money').innerText = `💰 剩餘金額：${left} 元`;
@@ -8963,12 +8996,13 @@
       const nickInput = document.getElementById('input-nickname').value.trim();
       gameState.playerName = nickInput || (selectedGender === 'male' ? '林護理師' : '菜鳥護理師');
       gameState.playerGender = selectedGender;
-      gameState.currentShift = selectedShift;
+      gameState.isIntern = selectedShift === 'intern';   // 實習班＝白班 08:00 的教學版
+      gameState.currentShift = gameState.isIntern ? 'day' : selectedShift;
 
       document.getElementById('start-screen-wrapper').style.display = 'none';
       document.getElementById('game-container').style.display = 'flex';
 
-      initGameByShift(selectedShift);
+      initGameByShift(gameState.currentShift);
       requestAnimationFrame(() => { centerMapView(); setTimeout(centerMapView, 200); });
     }
 
@@ -8996,7 +9030,7 @@
       gameState.recordExtra = 0; gameState.bentoHalves = 0; gameState.pineapple = false; gameState.speedBuffs = [];   // 道具改為上班前自行購買
 
       const shuffled = [...PATIENT_POOL].sort(() => 0.5 - Math.random());
-      const shiftRooms = SHIFT_ROOMS[shift] || SHIFT_ROOMS.day;
+      const shiftRooms = gameState.isIntern ? INTERN.rooms : (SHIFT_ROOMS[shift] || SHIFT_ROOMS.day);
       gameState.activePatients = shuffled.slice(0, shiftRooms.length);
       gameState.activePatients.forEach((p, idx) => {
         p.assignedRoom = shiftRooms[idx];
@@ -9010,6 +9044,8 @@
       gameState.decisionLog = [];   // 交班回顧：特殊／突發／病房事件的決策紀錄
       gameState._anxTotal = 0;     // 交班倒數焦慮累計
       gameState.vitalGraceUntil = 0;   // 搶救保護
+      gameState._internSeen = {}; gameState._internNag = {};   // 實習班學姊提示
+      try { _seniorSayQ = []; const _ss = document.getElementById('senior-say'); if (_ss) _ss.remove(); } catch (e) { }
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
       gameState.labQueue = [];
       gameState.speedLocked = false;
@@ -9119,7 +9155,7 @@
       });
 
       if (shift === 'day') {
-        isBloodShift = Math.random() < 0.30;
+        isBloodShift = !gameState.isIntern && Math.random() < 0.30;   // 實習班不排抽血班
         startTime = isBloodShift ? (7 * 60) : (8 * 60);
         endTime = 16 * 60;
 
@@ -9197,6 +9233,15 @@
         timedCandidates.push({ time: t, patient: WARD_PATIENT, data: resolved });
       });
 
+      // 實習班固定教學點：10:00 量 VS 發現發燒、13:30 中性球低下發燒（突發），讓學姊有機會帶一次
+      if (gameState.isIntern) {
+        const ps = [...gameState.activePatients].sort(() => Math.random() - 0.5);
+        [[600, 'SPECIAL_VITAL_FEVER', ps[0]], [810, 'EMERGENT_NEUTROPENIC_FEVER', ps[1]]].forEach(([t, eid, pt]) => {
+          const d = pt && resolveEventFromTemplate({ eventId: eid, id: `${eid}_INTERN_${pt.assignedRoom}`, probability: 1 }, pt);
+          if (d) timedCandidates.push({ time: t, patient: pt, data: d });
+        });
+      }
+
       gameState.currentTime = startTime;
       gameState.shiftEndTime = endTime;
       // 只保留落在本班時段 [開班, 交班) 內的排程事件
@@ -9233,8 +9278,12 @@
       updateHUD();
       restartLoop();
 
-      const shiftTitle = shift === 'day' ? (isBloodShift ? '白班 (抽血班 07:00)' : '白班 (08:00)') : (shift === 'evening' ? '小夜班 (16:00)' : '大夜班 (00:00)');
+      const shiftTitle = gameState.isIntern ? '實習班 (08:00)' : (shift === 'day' ? (isBloodShift ? '白班 (抽血班 07:00)' : '白班 (08:00)') : (shift === 'evening' ? '小夜班 (16:00)' : '大夜班 (00:00)'));
       showToast(`【${gameState.playerName}】正式接掌 ${shiftTitle}！體力/水分 100%，壓力值 0%。`);
+      if (gameState.isIntern) {
+        if (badgeEl) badgeEl.innerText = `${gameState.playerName} ${gameState.playerGender === 'male' ? '👨‍⚕️' : '👩‍⚕️'}＋學姊`;
+        setTimeout(() => seniorSay('start', INTERN_TIPS.start), 1200);
+      }
     }
 
     function restartCurrentShift() {
@@ -10106,6 +10155,7 @@
       }
 
       updateHUD();
+      if (gameState.isIntern) { try { internOnAlarm(data, category); } catch (e) { } }
       if (category === "ward") checkStationWard();   // 人已在護理站 → 直接開啟
     }
 
@@ -10120,7 +10170,7 @@
       const _isWard = !!p.isWard;
       document.getElementById("event-title").innerHTML = _isWard ? `【病房事件】${data.title}` : `【病房 ${p.assignedRoom}】${data.title}`;
       document.getElementById("event-bed-tag").innerText = _isWard ? `護理站` : `病房 ${p.assignedRoom} (${p.name})`;
-      document.getElementById("event-desc").innerHTML = renderTerms(swapSenior(data.desc));
+      document.getElementById("event-desc").innerHTML = renderTerms(swapSenior(data.desc)) + internEventTipHtml(data);   // 實習班：學姊小聲提醒
 
       const optsContainer = document.getElementById("options-container");
       optsContainer.innerHTML = "";
@@ -10280,7 +10330,7 @@
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
        偏高、偏低 → 報告醫師即可；極高、極低（危急值）→ 需馬上通報並處理。
        門檻為遊戲設定（各院規定不同）。危急值沒馬上處理 → 之後可能演變成相關急症／特殊事件。 */
-    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 8, from: 540, to: 840 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班抽血班 8 份
+    const LAB_PLAN = { day: { n: 3, from: 540, to: 840 }, dayBlood: { n: 8, from: 540, to: 840 }, intern: { n: 1, from: 570, to: 780 }, evening: { n: 0, from: 1020, to: 1320 }, night: { n: 2, from: 60, to: 330 } };   // 小夜不收報告；白班抽血班 8 份
     const LAB_CRIT_CHANCE = 0.35;     // 報告含極高／極低
     const LAB_NORMAL_CHANCE = 0.20;   // 報告全部正常；其餘為偏高／偏低
     const LAB_REF = {   // 名稱, 單位, 參考低, 參考高, 小數位, 極低門檻, 極高門檻, 可能偏移方向
@@ -10310,7 +10360,7 @@
       const hi = r[6] != null ? r[6] : r[3] * 2; return r[3] + (hi - r[3]) * (0.08 + Math.random() * 0.3);
     }
     function scheduleLabReports(shift) {
-      const plan = (shift === 'day' && gameState.isBloodDrawShift) ? LAB_PLAN.dayBlood : (LAB_PLAN[shift] || LAB_PLAN.day);
+      const plan = gameState.isIntern ? LAB_PLAN.intern : ((shift === 'day' && gameState.isBloodDrawShift) ? LAB_PLAN.dayBlood : (LAB_PLAN[shift] || LAB_PLAN.day));
       const pats = gameState.activePatients.filter(p => !p.isDischarged && !p.isDead).sort(() => Math.random() - 0.5).slice(0, plan.n);
       gameState.labQueue = pats.map(p => ({ t: plan.from + Math.floor(Math.random() * (plan.to - plan.from)), patient: p }));
     }
@@ -10389,6 +10439,7 @@
         if (deaths > 0 && !/死亡|窒息|致命/.test(r)) L.push('今天有病人走了，不是你一個人的錯，回家好好休息。');
         return L.slice(0, 2);
       }
+      if (gameState.isIntern) L.push('實習第一天辛苦了！今天教你的記起來，下次就要自己上白班囉。');
       if (ot === 0 && rec === 0) L.push('準時下班？你確定你今天有上班嗎……開玩笑的，做得很好。');
       if (bad > 0) L.push(`交班回顧裡有 ${bad} 題選得有點危險，回家再看一下，下次就不會錯了。`);
       else if (safety >= 95 && ok === 0 && (gameState.decisionLog || []).length) L.push('今天判斷都很穩，病人交給你我放心。');
@@ -10499,6 +10550,83 @@
         B: '離開病人去找醫師會延誤 CPR，每延遲一分鐘存活率都會下降；要原地呼救並立刻壓胸。',
         C: '沒有呼吸心跳必須立刻 CPR，不能走開。' }
     };
+
+    /* ===== 實習班（新人試用期）：白班 08:00、只顧 4 床、學姊隨行提醒；突發較少、體力水分掉得慢、交班焦慮減半 ===== */
+    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, hydrationMult: 0.6, anxietyMult: 0.5 };
+    const INTERN_TIPS = {
+      start: '今天我跟著你，你先顧 003、005、012、013 這 4 床就好。房卡亮起來就走過去，有事我會在旁邊提醒你。',
+      cat: {
+        routine: '藍框是常規，像給藥、量 V/S，走到床邊就會做完。到點後 2 小時內做完就好，不用急但也不要拖。',
+        special: '橘框是特殊處置，要你判斷。不確定的時候，先評估、再通知醫師，通常不會錯。',
+        emergent: '紅框！突發事件拖太久會出人命，手邊的事先放著，馬上跑過去。',
+        ward: '病房事件要回護理站處理，家屬等太久會暴走。'
+      },
+      ev: {
+        EMERGENT_NEUTROPENIC_FEVER: '7+3 的病人發燒要先幹嘛？先抽雙套血培養再上抗生素，順序搞錯你就完了。',
+        SPECIAL_VITAL_FEVER: '血腫科病人發燒都當成感染處理：通知醫師、先抽雙套血培養，再盡快上抗生素。',
+        SPECIAL_VITAL_HTN: '血壓高先別急著給藥，讓他休息、換手再量一次，問問有沒有頭痛、視力模糊。',
+        SPECIAL_VITAL_HYPOTN: '血壓低先讓他躺平、腳抬高，不要叫他坐起來，然後找原因、通知醫師。',
+        SPECIAL_VITAL_TACHY: '心跳快先找原因：有沒有發燒、痛、出血、剛剛有沒有走動，評估完再通知醫師。',
+        SPECIAL_VITAL_BRADY: '心跳 38 很危險，先接 monitor、通知醫師，急救車推過來備著。',
+        SPECIAL_HYPOGLYCEMIA: '低血糖記得 15-15：先給 15g 糖，15 分鐘後一定要複測。',
+        SPECIAL_HYPERGLYCEMIA: '醫囑看起來怪怪的就先打給醫師確認，不要照打。',
+        SPECIAL_TRANSFUSION: '輸血一定要兩個人核對，前 15 分鐘慢慢滴、在旁邊看有沒有輸血反應。',
+        SPECIAL_BLOOD_EXPIRED: '先看血袋效期，過期的一律退回血庫，不能輸。',
+        LAB_: '看判讀那一欄：極高、極低要馬上打給醫師；只有偏高、偏低報告醫師就好；全部正常記錄就好。',
+        OCCLUSION_: '點滴叫了先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
+        EMERGENT_OCCLUSION: '點滴叫了先看管路有沒有折到、有沒有空氣，真的塞住就重新打一條。',
+        BEDSORE_: '發現壓傷先處理傷口、拍照通報，不要跟家屬吵。',
+        EMERGENT_VITAL_ARREST: '沒呼吸沒心跳！原地呼救、開始壓胸，不要跑走找人。',
+        EMERGENT_VITAL_DYSPNEA: '喘又血氧低：床頭抬高、給氧、通知醫師，不要只把氧氣開大就走。'
+      },
+      water: '你嘴唇都乾了，先回護理站喝口水。',
+      stamina: '你臉色好差，有空回護理站歇一下，或吃點東西。',
+      records: '紀錄欠太多了，有空回護理站補一補，不然下班走不了。',
+      handover: '快交班了，手上的事情先收一收，紀錄也記得補。'
+    };
+    let _seniorSayQ = [], _seniorSayTimer = null;
+    function seniorSay(key, text) {
+      if (!gameState.isIntern || !text) return;
+      const seen = gameState._internSeen = gameState._internSeen || {};
+      if (key && seen[key]) return;
+      if (key) seen[key] = 1;
+      _seniorSayQ.push(text);
+      if (!document.getElementById('senior-say')) _seniorSayNext();
+    }
+    function _seniorSayNext() {
+      const vp = document.getElementById('viewport'); if (!vp) return;
+      const old = document.getElementById('senior-say'); if (old) old.remove();
+      if (_seniorSayTimer) { clearTimeout(_seniorSayTimer); _seniorSayTimer = null; }
+      const text = _seniorSayQ.shift(); if (!text || gameState.isGameOver) { _seniorSayQ = []; return; }
+      const el = document.createElement('div'); el.id = 'senior-say'; el.className = 'senior-say'; el.title = '點一下關閉';
+      el.innerHTML = `<span class="ss-badge">學姊</span><span>${text}</span><span class="ss-x">✕</span>`;
+      el.onclick = () => _seniorSayNext();
+      vp.appendChild(el);
+      _seniorSayTimer = setTimeout(_seniorSayNext, Math.max(7000, text.length * 220));
+    }
+    function internTipFor(data) {
+      const id = String((data && data.id) || '');
+      const key = Object.keys(INTERN_TIPS.ev).filter(k => id.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+      return key ? INTERN_TIPS.ev[key] : '';
+    }
+    function internEventTipHtml(data) {
+      if (!gameState.isIntern) return '';
+      const t = internTipFor(data);
+      return t ? `<div class="senior-say-inline"><b>學姊小聲說：</b>${t}</div>` : '';
+    }
+    function internOnAlarm(data, category) {
+      if (INTERN_TIPS.cat[category]) seniorSay('cat_' + category, INTERN_TIPS.cat[category]);
+    }
+    function internStatNag() {
+      if (gameState.isGameOver) return;
+      const nag = gameState._internNag = gameState._internNag || {}, t = gameState.currentTime;
+      const ok = k => !(nag[k] && t - nag[k] < 60);   // 同一件事 60 分鐘內只提醒一次
+      const say = (k, txt) => { if (!ok(k)) return; nag[k] = t; _seniorSayQ.push(txt); if (!document.getElementById('senior-say')) _seniorSayNext(); };
+      if (gameState.hydration < 40) say('water', INTERN_TIPS.water);
+      if (gameState.stamina < 35) say('stamina', INTERN_TIPS.stamina);
+      if (gameState.records >= 5) say('records', INTERN_TIPS.records);
+      if (t >= gameState.shiftEndTime - 60 && t < gameState.shiftEndTime) seniorSay('handover', INTERN_TIPS.handover);
+    }
     function optionHintFor(d, opt) {
       if (opt && opt.hint) return opt.hint;
       const id = String((d && d.id) || '');
@@ -11102,8 +11230,8 @@
       });
 
       applyShiftAnxiety(_t0, gameState.currentTime);   // 交班倒數焦慮
-      gameState.hydration = Math.max(0, gameState.hydration - HYDRATION_DRAIN_PER_MIN * minutes);   // 水分每分鐘平均扣（多分鐘處置也照實扣）
-      if (gameState.currentTime % 15 === 0) gameState.stamina = Math.max(0, gameState.stamina - 1);
+      gameState.hydration = Math.max(0, gameState.hydration - HYDRATION_DRAIN_PER_MIN * minutes * (gameState.isIntern ? INTERN.hydrationMult : 1));   // 水分每分鐘平均扣（多分鐘處置也照實扣；實習班較慢）
+      if (gameState.currentTime % (gameState.isIntern ? 30 : 15) === 0) gameState.stamina = Math.max(0, gameState.stamina - 1);
 
       // 每 20 遊戲分鐘執行各床個案劇情推進機率檢定 (解耦時間，依個案劇情機率滾動；16:00後不再生成新劇情階段，專注清空現存待辦)
       if (gameState.currentTime % 20 === 0 && gameState.currentTime < gameState.shiftEndTime) {
@@ -11149,7 +11277,8 @@
     function applyShiftAnxiety(t0, t1) {
       if (shiftLoad() < SHIFT_ANXIETY.minLoad) return;
       for (let b = Math.floor(t0 / SHIFT_ANXIETY.step) * SHIFT_ANXIETY.step + SHIFT_ANXIETY.step; b <= t1; b += SHIFT_ANXIETY.step) {
-        const r = anxietyRate(b); if (!r) continue;
+        let r = anxietyRate(b); if (!r) continue;
+        if (gameState.isIntern) r = Math.ceil(r * INTERN.anxietyMult);   // 實習班：交班焦慮減半
         gameState.stress = Math.min(100, gameState.stress + r);
         gameState._anxTotal = (gameState._anxTotal || 0) + r;
       }
@@ -11226,6 +11355,7 @@
     const ADMISSION = { enabled: true, chance: 0.30 };
     function admissionDrawAllowed(t) {
       if (t % 30 !== 0) return false;
+      if (gameState.isIntern) return false;   // 實習班不收新病人
       const sh = gameState.currentShift;
       if (sh === 'day') return t >= 9 * 60 + 30 && t <= 15 * 60;
       if (sh === 'evening') return t >= 17 * 60 + 30 && t <= 22 * 60;
@@ -11500,6 +11630,7 @@
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
       try { applyVitalFloor(); updateVitalDanger(); } catch (e) { }
+      if (gameState.isIntern) { try { internStatNag(); } catch (e) { } }
       const h = Math.floor(gameState.currentTime / 60) % 24;
       const m = gameState.currentTime % 60;
       const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
@@ -11517,6 +11648,9 @@
         } else if (gameState.currentShift === 'night') {
           shiftTag.innerText = "大夜班 (00:00)";
           shiftTag.style.color = "#818cf8";
+        } else if (gameState.isIntern) {
+          shiftTag.innerText = "實習班 (08:00)";
+          shiftTag.style.color = "#34d399";
         } else if (gameState.isBloodDrawShift) {
           shiftTag.innerText = "白班 (抽血班 07:00)";
           shiftTag.style.color = "#f43f5e";
@@ -11563,7 +11697,7 @@
     let _toastTimer = null;
     /* 各班交班時間與「下一班學姐」：文字裡寫死的「小夜學姐／16:00」依目前班別替換 */
     const SHIFT_INFO = { day: { name: '白班', end: '16:00', next: '小夜學姐' }, evening: { name: '小夜班', end: '24:00', next: '大夜學姐' }, night: { name: '大夜班', end: '08:00', next: '白班學姐' } };
-    function shiftInfo() { return SHIFT_INFO[gameState.currentShift] || SHIFT_INFO.day; }
+    function shiftInfo() { if (gameState.isIntern) return { name: '實習班', end: '16:00', next: '小夜學姐' }; return SHIFT_INFO[gameState.currentShift] || SHIFT_INFO.day; }
     function swapSenior(t) { return String(t == null ? '' : t).replace(/小夜學姐/g, shiftInfo().next); }
 
     function showToast(msg, dur) {
@@ -11977,7 +12111,7 @@
       const subtitle = document.getElementById("report-subtitle");
       const rank = document.getElementById("report-rank");
 
-      const shiftName = gameState.currentShift === 'day' ? '白班' : (gameState.currentShift === 'evening' ? '小夜班' : '大夜班');
+      const shiftName = gameState.isIntern ? '實習班' : (gameState.currentShift === 'day' ? '白班' : (gameState.currentShift === 'evening' ? '小夜班' : '大夜班'));
       titleEl.innerText = `📋 ${shiftName}交班結算單 (${gameState.playerName})`;
 
       document.getElementById("rep-stress").innerText = `${gameState.stress}%`;

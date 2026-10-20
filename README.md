@@ -300,3 +300,4 @@ PICC換藥（1/6，20分，體力-5，紀錄+1）／CVC換藥（1/7，15分，�
 - **道具**：商店與道具欄順序：礦泉水、寶礦力／冰美式、珍奶／Serenbucks 去冰、補滿／便當、院餐／彈性襪、小抄本／護手霜、鳳梨酥。遊戲中道具欄只顯示還有的道具。
 - **分享預覽與圖示**：加上 description、og／twitter 標籤（og.png 1200×630，網址以 workers.dev 為準）、SVG favicon、apple-touch-icon.png。public/og.png、public/apple-touch-icon.png 需放在網站根目錄。
 - **存檔提醒**：成就圖鑑上方說明紀錄只存在這台裝置的這個瀏覽器。
+- 手機直向底部按鈕列改為 9 欄（加了「📋 交班單」後「離開」不再掉到第二行）。

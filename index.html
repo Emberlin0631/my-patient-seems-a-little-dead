@@ -4,6 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>學姊我的病人好像怪怪的：菜鳥護理師護理日誌（模擬遊戲）</title>
+  <meta name="description" content="免安裝的血液腫瘤科菜鳥護理師模擬遊戲：在一班 8 小時裡顧好病人、喝水、補紀錄，準時交班。僅供娛樂與教育，非臨床指引。">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZjE3MmEiLz48cGF0aCBkPSJNMTIgMzhjMC0xNCA5LTI0IDIwLTI0czIwIDEwIDIwIDI0eiIgZmlsbD0iI2Y4ZmFmYyIvPjxyZWN0IHg9IjEwIiB5PSIzNyIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlMmU4ZjAiLz48cmVjdCB4PSIyOC41IiB5PSIxOSIgd2lkdGg9IjciIGhlaWdodD0iMTciIHJ4PSIxLjUiIGZpbGw9IiNlZjQ0NDQiLz48cmVjdCB4PSIyMy41IiB5PSIyNCIgd2lkdGg9IjE3IiBoZWlnaHQ9IjciIHJ4PSIxLjUiIGZpbGw9IiNlZjQ0NDQiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjUxIiByPSI3IiBmaWxsPSIjZjU5ZTBiIi8+PHRleHQgeD0iNTAiIHk9IjU1LjUiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMGYxNzJhIj4/PC90ZXh0Pjwvc3ZnPgo=">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#0f172a">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="學姊我的病人好像怪怪的">
+  <meta property="og:title" content="學姊我的病人好像怪怪的：菜鳥護理師護理日誌">
+  <meta property="og:description" content="免安裝的菜鳥護理師模擬遊戲。顧好病人、記得喝水、補完紀錄，你能準時下班嗎？僅供娛樂與教育，非臨床指引。">
+  <meta property="og:url" content="https://my-patient-seems-a-little-dead.jim99725.workers.dev/">
+  <meta property="og:image" content="https://my-patient-seems-a-little-dead.jim99725.workers.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="zh_TW">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="學姊我的病人好像怪怪的：菜鳥護理師護理日誌">
+  <meta name="twitter:description" content="免安裝的菜鳥護理師模擬遊戲。顧好病人、記得喝水、補完紀錄，你能準時下班嗎？">
+  <meta name="twitter:image" content="https://my-patient-seems-a-little-dead.jim99725.workers.dev/og.png">
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -1918,6 +1935,7 @@
       <button type="button" class="speed-btn" data-tab="cards" onclick="setCollTab('cards')">💌 感謝卡</button>
       <button type="button" class="speed-btn" data-tab="stats" onclick="setCollTab('stats')">📊 統計</button>
     </div>
+    <div style="font-size:11.5px; color:#94a3b8; background:#1e293b; border:1px solid #334155; border-radius:8px; padding:6px 10px; margin-bottom:10px;">💾 圖鑑、成就和感謝卡只存在這台裝置的這個瀏覽器裡。清除瀏覽器資料、用無痕模式或換手機／電腦，紀錄都不會跟著過去。</div>
     <div id="coll-panel-patients" class="coll-panel">
     <div id="archive-list-container">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
@@ -3480,13 +3498,13 @@
             "outcomes": [{ "p": 0.35, "event": "EMERGENT_CHEMO_EXTRAVASATION", "delayMin": 20, "toast": "病人說打針的地方又痛又腫……" }] },
           { "keyTag": "C", "text": "雙人核對後給藥，止吐藥等病人吐了再給", "time": 10, "stress": 0, "stamina": -3, "hydration": 0, "records": 2, "safety": -4, "favor": 0,
             "hint": "化療前依醫囑先給止吐藥，預防比吐了再處理有效，病人也比較不難受。" },
-          { "keyTag": "D", "text": "先去其他床，等等再來給藥", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+          { "keyTag": "D", "text": "其他床有更重要的事，先去其他床", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
         ]
       },
       "SPECIAL_ELOPEMENT": {
         "id": "SPECIAL_ELOPEMENT", "category": "special",
         "title": "病人不在病房",
-        "desc": "巡房發現病人不在床上，點滴架也不見了。隔壁床家屬說他剛剛說要下樓買東西。病人正在化療、血小板偏低。",
+        "desc": "巡房發現病人不在床上，點滴架也不見了。隔壁床家屬說他剛剛說要下樓買東西。病人化療療程中、血小板偏低。",
         "deadlineMinutes": 45, "onExpire": { "event": "SPECIAL_FALL" },
         "options": [
           { "keyTag": "A", "text": "先在樓層與病房附近找人、聯絡家屬，同時通報護理長與醫師，依院內流程請警衛協尋並記錄", "time": 15, "stress": 6, "stamina": -4, "hydration": 0, "records": 2, "safety": 6, "favor": 0,
@@ -3519,7 +3537,7 @@
         "options": [
           { "keyTag": "A", "text": "先問睡不著的原因，依 PRN 醫囑給藥，床欄拉起、呼叫鈴放手邊，提醒下床先按鈴", "time": 6, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 5, "favor": 0,
             "hint": "失眠先找原因（疼痛、焦慮、頻尿、環境吵）；安眠藥依 PRN 醫囑給，給藥後跌倒風險上升，要拉起床欄、呼叫鈴放手邊，提醒下床先按鈴。" },
-          { "keyTag": "B", "text": "直接給兩顆，讓他好好睡", "time": 2, "stress": 0, "stamina": 0, "hydration": 0, "records": 1, "safety": -8, "favor": 0,
+          { "keyTag": "B", "text": "直接給兩顆 PRN，讓他好好睡", "time": 2, "stress": 0, "stamina": 0, "hydration": 0, "records": 1, "safety": -8, "favor": 0,
             "hint": "安眠藥要依醫囑劑量給，自行加量會增加跌倒和呼吸抑制的風險。",
             "outcomes": [{ "p": 0.35, "event": "SPECIAL_FALL", "delayMin": 60, "toast": "剛吃安眠藥的病人自己下床上廁所……" }] },
           { "keyTag": "C", "text": "跟他說閉上眼睛就睡著了", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -2, "favor": 0,
@@ -3532,7 +3550,8 @@
         "desc": "病人凌晨痛醒，說骨頭痛到受不了，疼痛分數 8 分。平常有吃長效止痛藥，另有突破性疼痛的 PRN 醫囑。",
         "options": [
           { "keyTag": "A", "text": "評估疼痛部位、性質與分數，依 PRN 醫囑給突破性疼痛藥物，30 分鐘後再評估並記錄", "time": 6, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 6, "favor": 0,
-            "hint": "突破性疼痛要評估後依 PRN 醫囑給藥，給藥後再評估效果並記錄；止痛效果不好要通知醫師調整。" },
+            "hint": "突破性疼痛要評估後依 PRN 醫囑給藥，給藥後再評估效果並記錄；止痛效果不好要通知醫師調整。",
+            "outcomes": [{ "p": 1, "event": "ROUTINE_ORAL_MED", "delayMin": 0, "toast": "記得把 PRN 止痛藥拿去給病人吃。" }] },
           { "keyTag": "B", "text": "叫他忍到早上醫師查房再說", "time": 0, "stress": 3, "stamina": 0, "hydration": 0, "records": 0, "safety": -8, "favor": 0,
             "hint": "疼痛 8 分不該讓病人忍到天亮，有 PRN 醫囑就要依醫囑處理，沒效再通知醫師。" },
           { "keyTag": "C", "text": "長效止痛藥多給一顆", "time": 2, "stress": 0, "stamina": 0, "hydration": 0, "records": 1, "safety": -10, "favor": 0,
@@ -3887,8 +3906,10 @@
         if (e.data.dischargeGate) {   // 出院抽選：已在出院流程中、或量VS曾出現特殊/突發事件的個案不再抽
           const pt = e.patient;
           if (pt._discharging || pt._vsAbnormal) return;
+          if (gameState.isIntern && (gameState._internDischarges || 0) >= 1) return;   // 實習班最多出院一床
           if (!(Math.random() < prob * (gameState.pineapple ? 2 : 1))) return;
           pt._discharging = true;
+          if (gameState.isIntern) gameState._internDischarges = (gameState._internDischarges || 0) + 1;
         } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1) * (internEventMult(e.data)))) return;
         if (silent && ['routine', 'special', 'emergent'].includes(e.data.category) && bloodDrawPending()) { (gameState._bloodHold = gameState._bloodHold || []).push(e); return; }
         if (silent) {
@@ -8906,6 +8927,10 @@
           showToast(`硬吞${f === 1 ? '整個' : '半個'}院餐……體力 +${50 * f}，壓力 +${20 * f}，水分 -${20 * f}${sleepy ? '。吃飽好想睡……補紀錄每筆 +3 分鐘' : ''}`); } }
     ];
 
+    // 商店與道具欄的顯示順序（兩兩一排）
+    const BACKPACK_ORDER = ['mineral_water', 'sports_drink', 'iced_americano', 'boba', 'snow_half', 'snow_full', 'bento', 'hospital_meal', 'compression_socks', 'pocket_notes', 'hand_cream', 'pineapple_cake'];
+    backpack.sort((a, b) => BACKPACK_ORDER.indexOf(a.id) - BACKPACK_ORDER.indexOf(b.id));
+
     /* RUNTIME GAME STATE: 壓力起始 0%，體力與水分起始皆為 100%！壓力只由事件決策增減 */
     let gameState = {
       playerName: "菜鳥護理師",
@@ -9414,7 +9439,7 @@
       gameState.vitalGraceUntil = 0;   // 搶救保護
       gameState._internSeen = {}; gameState._internNag = {};   // 實習班學姊提示
       gameState._emResp = []; gameState._emMissed = 0; gameState._minStam = 100; gameState._minHyd = 100; gameState._runStartMs = Date.now();   // 表現分析
-      gameState._internHold = []; gameState._drillDone = false; gameState._internSpN = 0;   // 實習班階段
+      gameState._internHold = []; gameState._drillDone = false; gameState._internSpN = 0; gameState._internDischarges = 0;   // 實習班階段
       try { _seniorSayQ = []; const _ss = document.getElementById('senior-say'); if (_ss) _ss.remove(); } catch (e) { }
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
       gameState.labQueue = [];
@@ -9780,6 +9805,23 @@
       const plain = String(d.title || '').replace(/[（(][^）)]*[）)]/g, '').trim() || String(d.title || '');
       return (d.category === 'emergent' ? "🚨 " : "🔶 ") + (plain.length > 10 ? plain.slice(0, 10) + '…' : plain);
     }
+    // 有時限的常規（給藥、量 VS、輸液、抗生素、止痛）：剩餘分鐘；沒有時限回傳 null
+    function isTimedRoutine(d) { return !!(d && d.category === 'routine' && (d.isOralMed || d.isVitalSign || d.isAntibiotic || d.isMorphine || d.isInfusion)); }
+    function routineRemain(a) {
+      if (!isTimedRoutine(a.data)) return null;
+      const sT = a.data.spawnTime || a.time || gameState.currentTime;
+      return routineDueBy(a.data, sT) - gameState.currentTime;
+    }
+    // 排序：紅（突發）> 橘（特殊）> 藍有時限（剩越少越前面）> 藍無時限
+    function alarmSortKey(a) {
+      const c = a.data.category || 'special';
+      if (c === 'emergent') return [0, alarmRemain(a)];
+      if (c === 'special' || c === 'ward') return [1, a.data.deadlineMinutes ? alarmRemain(a) : 99999];
+      const r = routineRemain(a);
+      return r === null ? [3, 0] : [2, r];
+    }
+    function cmpAlarm(x, y) { const a = alarmSortKey(x), b = alarmSortKey(y); return a[0] - b[0] || a[1] - b[1]; }
+    function fmtRoutineRemain(r) { return r < 0 ? `逾時${-r}分` : fmtRemain(r); }
     function alarmRemain(a) {
       const sT = a.data.alarmSpawnTime || a.data.spawnTime || a.time || gameState.currentTime;
       const limit = a.data.deadlineMinutes || (a.data.category === 'emergent' ? 25 : 99999);
@@ -9860,8 +9902,10 @@
         // 3. 常規事件採藍色框
         else if (roomAlarms.some(a => a.data.category === 'routine')) {
           card.classList.add("cat-routine");
-          const topR = roomAlarms[0];
+          const topR = [...roomAlarms].sort(cmpAlarm)[0];
           let rText = routineBadgeText(topR.data);
+          const _rr = routineRemain(topR);
+          if (_rr !== null) rText += ` (${fmtRoutineRemain(_rr)})`;
           badge.innerText = alarmCount > 1 ? `${rText} 共${alarmCount}項` : rText;
           badge.classList.add("badge-routine");
         }
@@ -10269,11 +10313,7 @@
 
       // 嚴重性排序：突發 (1) > 特殊 (2) > 常規 (3)
       const severityRank = { emergent: 1, special: 2, routine: 3 };
-      const sortedAlarms = [...roomAlarms].sort((a, b) => {
-        const catA = a.data.category || 'special';
-        const catB = b.data.category || 'special';
-        return (severityRank[catA] || 3) - (severityRank[catB] || 3);
-      });
+      const sortedAlarms = [...roomAlarms].sort(cmpAlarm);   // 紅 > 橘 > 藍（有時限，剩越少越前）> 藍（無時限）
 
       const listContainer = document.getElementById("multi-event-list-container");
       listContainer.innerHTML = "";
@@ -10283,7 +10323,8 @@
         const itemDiv = document.createElement("div");
         itemDiv.className = `multi-event-item item-${cat}`;
 
-        let badgeTag = '<span style="background:#2563eb; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:4px;">🔵 常規照護</span>';
+        const _rr = routineRemain(ev);
+        let badgeTag = `<span style="background:#2563eb; color:white; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:4px;">🔵 常規照護${_rr !== null ? `（${_rr < 0 ? '已逾時 ' + (-_rr) + ' 分鐘' : '剩 ' + _rr + ' 分鐘'}）` : ''}</span>`;
         if (cat === 'emergent') {
           const spawnT = ev.data.alarmSpawnTime || ev.data.spawnTime || ev.time || gameState.currentTime;
           const limit = ev.data.deadlineMinutes || 25;
@@ -11043,7 +11084,7 @@
 
     /* ===== 時鐘里程碑：整點提示（只是提醒，不影響數值） ===== */
     const CLOCK_MILESTONES = {
-      day: [[480, '☀️ 08:00 早班給藥時間'], [540, '🩺 09:00 醫師查房，病人可能會問病情'], [720, '🍱 12:00 午餐時間，找空檔吃點東西'], [900, '⏰ 15:00 離交班剩 1 小時']],
+      day: [[540, '🩺 09:00 醫師查房，病人可能會問病情'], [720, '🍱 12:00 午餐時間，找空檔吃點東西'], [900, '⏰ 15:00 離交班剩 1 小時']],
       evening: [[1080, '🍱 18:00 晚餐時間，記得吃點東西'], [1200, '👋 20:00 探病時間結束'], [1260, '💊 21:00 睡前給藥時間'], [1320, '🌙 22:00 熄燈時間'], [1380, '⏰ 23:00 離交班剩 1 小時']],
       night: [[120, '🌙 02:00 夜深了，記得巡房'], [300, '🌅 05:00 天快亮了，準備早上給藥和偷 I/O'], [420, '⏰ 07:00 離交班剩 1 小時']]
     };
@@ -11087,7 +11128,7 @@
       });
     }
     /* ===== 實習班（新人試用期）：白班 08:00、只顧 4 床、學姊隨行提醒；突發較少、體力水分掉得慢、交班焦慮減半 ===== */
-    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, specialMult: 0.3, maxSpecial: 3, hydrationMult: 0.6, anxietyMult: 0.5, calmUntil: 600, releaseFrom: 690, releaseEvery: 20 };   // 10:00 前只有常規；被擋下的事件 11:30 起每 20 分鐘放一件
+    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, specialMult: 0.3, maxSpecial: 3, hydrationMult: 1, anxietyMult: 0.5, calmUntil: 600, releaseFrom: 690, releaseEvery: 20 };   // 10:00 前只有常規；被擋下的事件 11:30 起每 20 分鐘放一件
     const INTERN_TIPS = {
       start: '今天我跟著你，你先顧 003、005、012、013 這 4 床就好。房卡亮起來就走過去，有事我會在旁邊提醒你。',
       cat: {
@@ -11274,8 +11315,8 @@
     /* ===== 交班系統：開班看接班單；下班前每床勾出要交代的重點，計入表現分析與交班回顧 ===== */
     const HANDOVER_TRIVIA = [
       '病人午餐吃了排骨飯，說有點鹹', '家屬人很好，有送水果給護理站', '病人喜歡看八點檔，晚上不要吵他', '病人說護理師很漂亮',
-      '病人的手機充電線借給隔壁床', '病人說醫院的枕頭太硬', '家屬問停車場怎麼繳費', '病人今天心情不錯，有跟隔壁床聊天',
-      '病人說想吃麥當勞', '家屬下午三點會來探病'
+      '病人的手機充電線借給隔壁床', '病人說醫院的醫生看起來都老老的', '家屬問停車場怎麼繳費', '病人今天心情不錯，有跟隔壁床聊天',
+      '病人說想吃麥當勞', '家屬好像是演員，很帥'
     ];
     function patientLines(p) {
       let t = p.tubes; if (typeof t === 'string') { try { t = JSON.parse(t.replace(/'/g, '"')); } catch (e) { t = [t]; } }
@@ -12738,7 +12779,9 @@
     function openItemModal() {
       const list = document.getElementById("items-content");
       list.innerHTML = "";
-      backpack.forEach(b => {
+      const owned = backpack.filter(b => (b.portion ? b.halves : b.count) > 0);   // 只顯示還有的道具
+      if (!owned.length) list.innerHTML = '<div style="color:#94a3b8; font-size:13px; padding:12px; text-align:center;">道具都用完了，下次上班前記得先買。</div>';
+      owned.forEach(b => {
         const item = document.createElement("div");
         item.className = "item-card";
         item.innerHTML = `

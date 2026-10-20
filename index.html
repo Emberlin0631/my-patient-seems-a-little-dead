@@ -12284,12 +12284,11 @@
       updateRoomCardsVisualHierarchy();
     }
     function ringDischargeStep(p, eventId, timeCost, stamina) {
-      setTimeout(() => {
-        if (!p || p.isDischarged || p.isDead || p._vsAbnormal) return;   // 病況不穩時不再接續出院步驟
-        const d = resolveEventFromTemplate({ eventId, timeCost }, p);
-        d.dischargeStamina = stamina;
-        ringRoomAlarm({ time: gameState.currentTime, patient: p, data: d });
-      }, 500);
+      // 立刻接上下一步（不延遲），房間清單會直接出現下一步，不用先關掉清單再點一次
+      if (!p || p.isDischarged || p.isDead || p._vsAbnormal) return;   // 病況不穩時不再接續出院步驟
+      const d = resolveEventFromTemplate({ eventId, timeCost }, p);
+      d.dischargeStamina = stamina;
+      ringRoomAlarm({ time: gameState.currentTime, patient: p, data: d });
     }
     function handleDischargeStep(ev, roomNum) {
       const p = ev.patient, st = ev.data.dischargeStep;

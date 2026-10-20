@@ -9316,6 +9316,9 @@
     const SHOP_INCOME = { day: 1343, evening: 1943, night: 2343, intern: 1343 };   // 實習班薪水同白班   // 各班起始金額＝當班薪水
     const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145, hand_cream: 150, mineral_water: 30, sports_drink: 45, compression_socks: 199, pocket_notes: 120 };
     const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2, hand_cream: 1, mineral_water: 1, sports_drink: 2, compression_socks: 1, pocket_notes: 1 };   // 每樣道具購買上限（未列者不限）
+    const SHOP_GROUPS = [{ ids: ['snow_half', 'snow_full'], max: 2, label: '兩種 Serenbucks 合計限購 2 杯' }];   // 合計購買上限
+    function shopGroupOf(id) { return SHOP_GROUPS.find(g => g.ids.includes(id)); }
+    function shopGroupFull(id) { const g = shopGroupOf(id); return !!g && g.ids.reduce((a, k) => a + (shopCart[k] || 0), 0) >= g.max; }
     let shopCart = {}, shopLoadout = {}, shopLeft = null;
     function shopSpent() { return Object.keys(shopCart).reduce((a, k) => a + (shopCart[k] || 0) * (SHOP_PRICE[k] || 0), 0); }
     function renderShop() {
@@ -9327,14 +9330,14 @@
       backpack.forEach(b => {
         const price = SHOP_PRICE[b.id] || 0, n = shopCart[b.id] || 0;
         const row = document.createElement('div'); row.className = 'shop-row';
-        row.innerHTML = `<div class="shop-info"><div class="shop-name">${b.name}</div><div class="shop-desc">${b.desc}</div><div class="shop-price">${price} 元${SHOP_MAX[b.id] ? `（限購 ${SHOP_MAX[b.id]} 個）` : ''}</div></div>
-          <div class="shop-qty"><button type="button" ${n <= 0 ? 'disabled' : ''} onclick="shopChange('${b.id}',-1)">−</button><span>${n}</span><button type="button" ${(left < price || n >= (SHOP_MAX[b.id] || Infinity)) ? 'disabled' : ''} onclick="shopChange('${b.id}',1)">＋</button></div>`;
+        row.innerHTML = `<div class="shop-info"><div class="shop-name">${b.name}</div><div class="shop-desc">${b.desc}</div><div class="shop-price">${price} 元${SHOP_MAX[b.id] ? `（限購 ${SHOP_MAX[b.id]} 個）` : ''}${shopGroupOf(b.id) ? `（${shopGroupOf(b.id).label}）` : ''}</div></div>
+          <div class="shop-qty"><button type="button" ${n <= 0 ? 'disabled' : ''} onclick="shopChange('${b.id}',-1)">−</button><span>${n}</span><button type="button" ${(left < price || n >= (SHOP_MAX[b.id] || Infinity) || shopGroupFull(b.id)) ? 'disabled' : ''} onclick="shopChange('${b.id}',1)">＋</button></div>`;
         box.appendChild(row);
       });
     }
     function shopChange(id, d) {
       const price = SHOP_PRICE[id] || 0, n = shopCart[id] || 0;
-      if (d > 0 && (SHOP_INCOME[selectedShift] - shopSpent() < price || n >= (SHOP_MAX[id] || Infinity))) return;
+      if (d > 0 && (SHOP_INCOME[selectedShift] - shopSpent() < price || n >= (SHOP_MAX[id] || Infinity) || shopGroupFull(id))) return;
       if (d < 0 && n <= 0) return;
       SoundFX.playClick();
       shopCart[id] = n + d;

@@ -13668,7 +13668,7 @@
   }
   window.cycleGraphics = function(){
     load(function(){
-      var nx = isTouch() ? {off:'low', low:'high', high:'off'} : {high:'low', low:'off', off:'high'};
+      var nx = {high:'low', low:'off', off:'high'};   // 手機與電腦相同：3D高 → 3D省電 → 2D → 3D高
       Gfx3D.setMode(nx[Gfx3D.mode] || 'off'); try{localStorage.setItem('gfxMode2',Gfx3D.mode);}catch(e){}
     });
   };

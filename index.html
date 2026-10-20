@@ -13637,10 +13637,10 @@
     if (b) b.textContent = m === 'high' ? '🎨 3D高' : m === 'low' ? '🎨 3D省電' : '🎨 2D';
     if (typeof updatePlayerVisual === 'function') try { updatePlayerVisual(); } catch (e) { }
   }
-  function cycle() { setMode(mode === 'high' ? 'low' : mode === 'low' ? 'off' : 'high'); try { localStorage.setItem('gfxMode2', mode); } catch (e) { } }
+  function cycle() { setMode(mode === 'high' ? 'low' : 'high'); try { localStorage.setItem('gfxMode2', mode); } catch (e) { } }
   function boot() {
     let m = null; try { m = localStorage.getItem('gfxMode2'); } catch (e) { }
-    if (!m) m = (window.innerWidth <= 820 || (navigator.maxTouchPoints > 1)) ? 'off' : 'high';
+    if (!m || m === 'off') m = (window.innerWidth <= 820 || (navigator.maxTouchPoints > 1)) ? 'low' : 'high';   // 不再提供 2D：手機預設 3D省電
     if (!THREE_OK) m = 'off';
     setMode(m);
   }
@@ -13653,7 +13653,7 @@
 /* 3D 延遲載入：預設不執行任何 3D 程式，電腦版載入完成後才載入，手機只有按 🎨 才載入 */
 (function(){
   var loaded=false, loading=false;
-  function pref(){ try { return localStorage.getItem('gfxMode2'); } catch(e){ return null; } }
+  function pref(){ var m=null; try { m = localStorage.getItem('gfxMode2'); } catch(e){} return m==='off' ? null : m; }   // 舊的 2D 設定不再沿用
   function isTouch(){ return window.innerWidth <= 820 || (navigator.maxTouchPoints > 1); }
   function label(m){ var b=document.getElementById('hud-gfx-btn'); if(b) b.textContent = m==='high'?'\uD83C\uDFA8 3D高':m==='low'?'\uD83C\uDFA8 3D省電':'\uD83C\uDFA8 2D'; }
   function load(cb){
@@ -13668,13 +13668,13 @@
   }
   window.cycleGraphics = function(){
     load(function(){
-      var nx = {high:'low', low:'off', off:'high'};   // 手機與電腦相同：3D高 → 3D省電 → 2D → 3D高
+      var nx = {high:'low', low:'high', off:'high'};   // 只有 3D高 ↔ 3D省電（2D 只在 3D 無法啟動時自動退回）
       Gfx3D.setMode(nx[Gfx3D.mode] || 'off'); try{localStorage.setItem('gfxMode2',Gfx3D.mode);}catch(e){}
     });
   };
   window.addEventListener('load', function(){
-    var m = pref(); label(m || (isTouch() ? 'off' : 'high'));
-    if((m && m!=='off') || (!m && !isTouch())) setTimeout(function(){ load(); }, 300);
+    var m = pref(); label(m || (isTouch() ? 'low' : 'high'));
+    setTimeout(function(){ load(); }, 300);   // 手機也直接載入 3D（預設省電）
   });
 })();
 </script>

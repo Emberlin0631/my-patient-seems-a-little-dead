@@ -9619,8 +9619,9 @@
       gameState.scheduledEventsQueue.forEach(e => {
         const d = e.data;
         if (!d || d.category !== 'routine' || !isMedRoutine(d)) return;
+        if (shift === 'day' && e.time < 8 * 60) e.time = 8 * 60;   // 白班：給藥時間早於 8 點的一律調到 8 點（抽血班 7～8 點專心抽血）
         d._dueBy = e.time + MED_WINDOW;
-        e.time = Math.max(e.time - MED_WINDOW, startTime);
+        e.time = Math.max(e.time - MED_WINDOW, startTime, shift === 'day' ? 8 * 60 : 0);   // 白班最早 8 點才跳
       });
       gameState.isBloodDrawShift = isBloodShift;
       try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }   // 檢驗報告（要在確定是否為抽血班之後排）
@@ -11084,7 +11085,7 @@
     function bloodDrawPending() {
       return !!gameState.isBloodDrawShift && gameState.pendingEvents.some(e => String((e.data && e.data.id) || '').startsWith('BLOOD_'));
     }
-    // 抽血班：最後一床抽完 → 放出擋下的常規事件（給藥時間窗從放出時重新起算 1 小時），再跳接班單
+    // 抽血班：最後一床抽完 → 放出擋下的事件，再跳接班單（抽血本應 8 點前完成，給藥期限不另外延長）
     function bloodHoldTick() {
       if (!gameState.isBloodDrawShift || gameState._bloodBriefDone || bloodDrawPending()) return;
       gameState._bloodBriefDone = true;
@@ -11093,7 +11094,6 @@
       q.forEach(ev => {
         if (!ev.patient || ev.patient.isDead || ev.patient.isDischarged) return;
         const d = ev.data;
-        if (d._dueBy !== undefined) d._dueBy = Math.max(d._dueBy, now + MED_WINDOW);
         ringRoomAlarm({ ...ev, time: now });
       });
       showToast('💉 清晨抽血全部完成！先看接班單，其他事件接著開始。', 3500);

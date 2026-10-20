@@ -3201,7 +3201,7 @@
       showToast(`⚫【病房 ${room}】${p.name}：${reason || '病人已死亡'}`, 6000);
       // 死亡後續：特殊事件「遺體護理」（無時限，需到該床處理）
       const eolData = resolveEventFromTemplate({ eventId: 'SPECIAL_END_OF_LIFE_CARE' }, p);
-      if (p.eolSingle) eolData.options = eolData.options.filter(o => o.keyTag === 'A');   // 指定個案（婁老師）：遺體護理只有一個選項
+      if (p.eolSingle) eolData.options = eolData.options.filter(o => o.keyTag === 'A');   // 指定個案：遺體護理只有一個選項
       eolData.spawnTime = eolData.alarmSpawnTime = gameState.currentTime;
       gameState.pendingEvents.push({ time: gameState.currentTime, patient: p, data: eolData });
       updateRoomCardsVisualHierarchy();

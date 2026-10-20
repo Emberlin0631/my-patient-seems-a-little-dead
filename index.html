@@ -2197,8 +2197,15 @@
       evening: { routineRate: 1 },
       night:   { routineRate: 1 }
     };
+    // 實習班：排程的特殊／突發事件機率下修（學姊安排的教學事件、練習不受影響）
+    function internSpecialFull() { return (gameState._internSpN || 0) + ((gameState._internHold || []).filter(e => e.data && e.data.category === 'special').length) >= INTERN.maxSpecial; }
+    function internEventMult(d) {
+      if (!gameState.isIntern || !d || String(d.id || '').includes('_INTERN_')) return 1;
+      return d.category === 'emergent' ? INTERN.emergentMult : (d.category === 'special' ? INTERN.specialMult : 1);
+    }
     function tunedProb(ev, prob, shift) {
       if (ev && ev.category === 'emergent' && gameState.isIntern) return prob * INTERN.emergentMult;   // 實習班：突發事件減少
+      if (ev && ev.category === 'special' && gameState.isIntern) return prob * INTERN.specialMult;     // 實習班：特殊事件減少
       if (!ev || ev.category !== 'routine') return prob;
       const t = SHIFT_TUNING[shift || gameState.currentShift] || SHIFT_TUNING.day;
       return Math.max(0, Math.min(1, prob * (t.routineRate ?? 1)));
@@ -3436,7 +3443,7 @@
       let r = Math.random(), acc = 0;
       for (const b of VITAL_BRANCH_TABLE) {
         const mult = (risk[b.key] !== undefined) ? risk[b.key] : 1;
-        acc += b.p * mult * dbl * ((gameState.isIntern && /^EMERGENT/.test(b.eventId)) ? INTERN.emergentMult : 1);
+        acc += b.p * mult * dbl * (gameState.isIntern ? (/^EMERGENT/.test(b.eventId) ? INTERN.emergentMult : (internSpecialFull() ? 0 : INTERN.specialMult)) : 1);
         if (r < acc) {
           gameState.records += 1;
           if (patient) {
@@ -3880,7 +3887,7 @@
           if (pt._discharging || pt._vsAbnormal) return;
           if (!(Math.random() < prob * (gameState.pineapple ? 2 : 1))) return;
           pt._discharging = true;
-        } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1) * ((gameState.isIntern && e.data.category === 'emergent') ? INTERN.emergentMult : 1))) return;
+        } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1) * (internEventMult(e.data)))) return;
         if (silent && ['routine', 'special', 'emergent'].includes(e.data.category) && bloodDrawPending()) { (gameState._bloodHold = gameState._bloodHold || []).push(e); return; }
         if (silent) {
           const d = e.data;
@@ -4000,7 +4007,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4209,13 +4216,13 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
@@ -4227,7 +4234,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4337,7 +4344,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -4355,7 +4362,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4462,7 +4469,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:30",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -4474,7 +4481,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:00",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4615,19 +4622,19 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:40",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:10",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4723,7 +4730,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:50",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -4741,7 +4748,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:20",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4846,7 +4853,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "09:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
@@ -4858,7 +4865,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -4954,7 +4961,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -4966,7 +4973,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -5124,13 +5131,13 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
@@ -5142,7 +5149,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -5400,7 +5407,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:40",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -5412,7 +5419,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:10",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -5489,19 +5496,19 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:50",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "09:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:20",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -5710,7 +5717,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -5857,13 +5864,13 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
@@ -5875,7 +5882,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6074,7 +6081,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -6092,7 +6099,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6186,7 +6193,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:30",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -6198,7 +6205,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:00",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6463,7 +6470,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:50",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -6475,7 +6482,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:20",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6574,7 +6581,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6651,19 +6658,19 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6825,7 +6832,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -6837,7 +6844,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -6938,7 +6945,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:30",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -6950,7 +6957,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:00",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -7121,7 +7128,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:40",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -7139,7 +7146,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:10",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -7461,7 +7468,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -7640,19 +7647,19 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -7725,7 +7732,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -7743,7 +7750,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -7832,7 +7839,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:30",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -7850,7 +7857,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:00",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -8087,7 +8094,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:50",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -8099,7 +8106,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:20",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -8222,7 +8229,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:30",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -8305,13 +8312,13 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:10",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "08:30",
+            "time": "09:00",
             "probability": 1.0,
             "customTitle": "給口服藥"
           },
@@ -8323,7 +8330,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:40",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -8497,7 +8504,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:20",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -8515,7 +8522,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "17:50",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -8641,7 +8648,7 @@
         "schedule": [
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "06:30",
+            "time": "06:00",
             "probability": 0.3,
             "customTitle": "給口服藥"
           },
@@ -8653,7 +8660,7 @@
           },
           {
             "eventId": "ROUTINE_ORAL_MED",
-            "time": "18:00",
+            "time": "17:00",
             "probability": 0.7,
             "customTitle": "給口服藥"
           },
@@ -9390,7 +9397,7 @@
       gameState.vitalGraceUntil = 0;   // 搶救保護
       gameState._internSeen = {}; gameState._internNag = {};   // 實習班學姊提示
       gameState._emResp = []; gameState._emMissed = 0; gameState._minStam = 100; gameState._minHyd = 100; gameState._runStartMs = Date.now();   // 表現分析
-      gameState._internHold = []; gameState._drillDone = false;   // 實習班階段
+      gameState._internHold = []; gameState._drillDone = false; gameState._internSpN = 0;   // 實習班階段
       try { _seniorSayQ = []; const _ss = document.getElementById('senior-say'); if (_ss) _ss.remove(); } catch (e) { }
       try { setUserPause(false); } catch (e) { gameState.userPaused = false; }
       gameState.labQueue = [];
@@ -9583,7 +9590,7 @@
 
       // 新增事件排程：每班各自擲骰，抽一位病人（[開始, 結束, 機率]；大夜時間 00:00=0）
       const pickPt = () => { const al = gameState.activePatients.filter(x => !x.isDead && !x.isDischarged); return al[Math.floor(Math.random() * al.length)]; };
-      EXTRA_EVENT_SCHEDULE.forEach(it => {
+      if (!gameState.isIntern) EXTRA_EVENT_SCHEDULE.forEach(it => {   // 實習班不排化療、病人逃跑、家屬IHCA、ICH
         const w = it[shift]; if (!w) return;
         const a = parseClock(w[0]), b = parseClock(w[1]); if (a === null || b === null) return;
         const t = a + Math.floor(Math.random() * (b - a + 1)), pt = pickPt(); if (!pt) return;
@@ -10513,6 +10520,8 @@
       const category = data.category || (data.id?.startsWith("ROUTINE") ? "routine" : (evObj.isRandom ? "emergent" : "special"));
       // 實習班第一階段（10:00 前）只有常規：其他事件先擋下，之後分批放出
       if (gameState.isIntern && gameState.currentTime < INTERN.calmUntil && category !== 'routine' && !String(data.id || '').includes('_INTERN_')) {
+        if (category === 'special' && !data.callbell && !String(data.id || '').startsWith('LAB_') && internSpecialFull()) return;   // 已達上限就不再排
+        data.category = category;
         (gameState._internHold = gameState._internHold || []).push(evObj);
         return;
       }
@@ -10521,6 +10530,11 @@
         data.category = category;
         (gameState._bloodHold = gameState._bloodHold || []).push(evObj);
         return;
+      }
+      // 實習班：學姊安排的教學事件之外，特殊事件一班最多 maxSpecial 件（檢驗報告、呼叫鈴不算）
+      if (gameState.isIntern && category === 'special' && !String(data.id || '').includes('_INTERN_') && !data.callbell && !String(data.id || '').startsWith('LAB_')) {
+        if (internSpecialFull()) return;
+        gameState._internSpN = (gameState._internSpN || 0) + 1;
       }
       evObj.data.category = category;
       data.spawnTime = gameState.currentTime;
@@ -11044,7 +11058,7 @@
       });
     }
     /* ===== 實習班（新人試用期）：白班 08:00、只顧 4 床、學姊隨行提醒；突發較少、體力水分掉得慢、交班焦慮減半 ===== */
-    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, hydrationMult: 0.6, anxietyMult: 0.5, calmUntil: 600, releaseFrom: 690, releaseEvery: 20 };   // 10:00 前只有常規；被擋下的事件 11:30 起每 20 分鐘放一件
+    const INTERN = { rooms: ['003', '005', '012', '013'], emergentMult: 0.4, specialMult: 0.3, maxSpecial: 3, hydrationMult: 0.6, anxietyMult: 0.5, calmUntil: 600, releaseFrom: 690, releaseEvery: 20 };   // 10:00 前只有常規；被擋下的事件 11:30 起每 20 分鐘放一件
     const INTERN_TIPS = {
       start: '今天我跟著你，你先顧 003、005、012、013 這 4 床就好。房卡亮起來就走過去，有事我會在旁邊提醒你。',
       cat: {

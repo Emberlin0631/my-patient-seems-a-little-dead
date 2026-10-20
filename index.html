@@ -12864,7 +12864,7 @@
         ${section('👪', '家庭背景', renderTerms(p.family, true))}
         ${section('🎭', '性格特質', renderTerms(p.personality, true))}
         ${p.memorial ? section('💌', '兒子想對她說', renderTerms(p.memorial, true)) : ''}
-        ${section('🕒', '常規排程發生時間', `
+        ${p.hideSchedule ? '' : section('🕒', '常規排程發生時間', `
           <div style="display:flex; flex-wrap:wrap; gap:10px;">
             ${shiftBlock('☀️ 白班 08:00–16:00', '#fbbf24', groups.day)}
             ${shiftBlock('🌆 小夜班 16:00–24:00', '#fb923c', groups.evening)}

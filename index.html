@@ -1661,7 +1661,7 @@
         <button type="button" class="toolbar-link" onclick="openSeniorTips(false)">
           📋 學姊叮嚀
         </button>
-        <button type="button" class="toolbar-link" onclick="openWishModal()">
+        <button type="button" class="toolbar-link" onclick="openWishModal()" style="display:none;"><!-- 意見回饋暫時關閉：拿掉 display:none 即可恢復 -->
           💬 意見回饋
         </button>
         <button type="button" class="toolbar-link" onclick="openDictModal()">
@@ -12591,7 +12591,7 @@
         list.appendChild(item);
       });
       if (filtered.length === 0) {
-        list.innerHTML = "<div style='color:#64748b; font-size:12px; text-align:center; padding:20px;'>無相符術語，歡迎至許願池新增！</div>";
+        list.innerHTML = "<div style='color:#64748b; font-size:12px; text-align:center; padding:20px;'>沒有找到相符的術語。</div>";
       }
     }
 

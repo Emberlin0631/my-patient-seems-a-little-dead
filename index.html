@@ -3812,7 +3812,9 @@
         options: item.customOptions || t.options || []
       };
     }
-    function wardPending() { return gameState.pendingEvents.filter(e => e.data && e.data.category === 'ward'); }
+    function wardPending() { return gameState.pendingEvents.filter(e => e.data && (e.data.category === 'ward' || e.data.atStation)); }
+    // 房間裡要處理的事件（檢驗報告等「在護理站看」的不算）
+    function roomPending(roomNum) { return gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum && !(e.data && e.data.atStation)); }
 
     // 護理站旁的提示徽章（有待處理病房事件時閃爍）
     function updateWardIndicator() {
@@ -3826,7 +3828,7 @@
         const sT = top.data.alarmSpawnTime || top.data.spawnTime || top.time || gameState.currentTime;
         tail = ` [剩${fmtRemain(Math.max(0, top.data.deadlineMinutes - (gameState.currentTime - sT)))}]`;
       }
-      el.innerText = `🏥 病房事件${list.length > 1 ? `×${list.length}` : ''}${tail}`;
+      el.innerText = `${list.every(e => e.data.atStation) ? '📄 檢驗報告' : '🏥 護理站待辦'}${list.length > 1 ? `×${list.length}` : ''}${tail}`;
       el.style.display = 'inline-block';
     }
 
@@ -9776,7 +9778,7 @@
         const badge = document.getElementById(`badge-${roomNum}`);
         if (!card || !badge) return;
 
-        const roomAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
+        const roomAlarms = roomPending(roomNum);
         const alarmCount = roomAlarms.length;
 
         // 移除所有舊有類別
@@ -10032,6 +10034,7 @@
     }
 
     function navigateToTarget(targetPx, targetPy, roomArrivalNum) {
+      gameState._followRoom = null;   // 走去別處就不再自動接續上一間房的清單
       if (gameState.isPaused || gameState.isGameOver) return;
       if (!gameState._navForStation) gameState.pendingStationAction = null;
       const currentStartKey = findClosestNavNode(gameState.playerPos.x, gameState.playerPos.y);
@@ -10218,7 +10221,7 @@
        多事件疊加時開啟條列選單，依嚴重性選擇執行哪一事件
        ======================================================== */
     function checkArrivalTrigger(roomNum) {
-      const roomAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
+      const roomAlarms = roomPending(roomNum);
 
       if (roomAlarms.length === 0) {
         const p = gameState.activePatients.find(pt => pt.assignedRoom === roomNum);
@@ -10242,7 +10245,7 @@
       SoundFX.playAlarm();
 
       const p = gameState.activePatients.find(pt => pt.assignedRoom === roomNum);
-      const roomAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
+      const roomAlarms = roomPending(roomNum);
 
       const titleEl = document.getElementById("multi-event-title");
       if (titleEl) {
@@ -10498,7 +10501,8 @@
         updateRoomCardsVisualHierarchy();
 
         // 檢查該病房是否仍有未完成處置（>=1 項繼續顯示選單，0 項則徹底解除暫停恢復行動）
-        const remainingAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
+        const remainingAlarms = roomPending(roomNum);
+        markFollowRoom(roomNum);
         if (remainingAlarms.length >= 1) {
           openMultiEventModal(roomNum);
         } else {
@@ -10513,6 +10517,15 @@
       triggerEventModal(ev);
     }
 
+    // 連續處置：剛在這間房處理完，隨即接續跳出的事件（量 VS 異常、出院下一步、I/O 異常…）直接接上房間清單，不用先關掉再點
+    function markFollowRoom(roomNum) { gameState._followRoom = roomNum; gameState._followUntil = Date.now() + 2000; }
+    function followRoomReopen(p, data) {
+      if (!p || p.isWard || data.atStation || gameState.isGameOver) return;
+      if (gameState._followRoom !== p.assignedRoom || Date.now() > (gameState._followUntil || 0)) return;
+      if (gameState.activeEvent || gameState.isMoving || document.getElementById('event-overlay').style.display === 'flex') return;
+      if (document.querySelector('.info-modal.active')) return;
+      openMultiEventModal(p.assignedRoom);
+    }
     function ringRoomAlarm(evObj) {
       const p = evObj.patient;
       if (p && p.isDischarged && !p._admitting) return;
@@ -10548,6 +10561,7 @@
       }
 
       gameState.pendingEvents.push(evObj);
+      followRoomReopen(p, data);
       SoundFX.playEventAlarm(data, category);   // 警報分級
       if (category === 'emergent') emergentAlarmFx();
 
@@ -10832,8 +10846,8 @@
       ];
       return {
         id: `LAB_${p.assignedRoom}_${gameState.currentTime}`, category: 'special', title: '檢驗報告回來',
-        desc: `【病房 ${p.assignedRoom} (${p.name})】今天的血液檢驗報告出來了，請判讀並處理：${table}`,
-        options, deadlineMinutes: 60, onExpire: crit ? { event: crit.follow } : undefined, _labCrit: !!crit, _labKind: kind
+        desc: `【病房 ${p.assignedRoom} (${p.name})】今天的血液檢驗報告出來了，在護理站電腦上判讀並處理：${table}`,
+        options, deadlineMinutes: 60, onExpire: crit ? { event: crit.follow } : undefined, _labCrit: !!crit, _labKind: kind, atStation: true
       };
     }
 
@@ -11423,7 +11437,7 @@
     function selectOption(opt) {
       SoundFX.playClick();
       const timeCost = (typeof opt.time === 'number') ? opt.time : 5;   // 選項標示 +0 分鐘就真的是 0 分鐘（舊寫法 0 會被當成 5）
-      const _wasWard = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'ward');
+      const _wasWard = !!(gameState.activeEvent && gameState.activeEvent.data && (gameState.activeEvent.data.category === 'ward' || gameState.activeEvent.data.atStation));
       const _wasEmergent = !!(gameState.activeEvent && gameState.activeEvent.data && gameState.activeEvent.data.category === 'emergent');
       const _wasIntercom = !!gameState._intercom; gameState._intercom = false;
       const p = (gameState.activeEvent && !gameState.activeEvent.patient.isWard) ? gameState.activeEvent.patient : null;
@@ -11436,7 +11450,7 @@
         document.getElementById("event-overlay").style.display = "none";
         gameState.activeEvent = null;
         gameState.isPaused = false;
-        showToast(_wasIntercom ? "📞 掛上對講機，這床的呼叫鈴仍保留。" : (_wasWard ? "先放著，病房事件仍保留（回護理站再處理）。" : "先去處理別床，這邊的事件仍保留（倒數持續）。"));
+        showToast(_wasIntercom ? "📞 掛上對講機，這床的呼叫鈴仍保留。" : (_wasWard ? "先放著，這件事仍保留（回護理站再處理）。" : "先去處理別床，這邊的事件仍保留（倒數持續）。"));
         updateRoomCardsVisualHierarchy();
         updateHUD();
         return;
@@ -11784,15 +11798,16 @@
       if (p && !p.isDead) triggerPatientNextPlotEvent(p);
 
       // 若該房仍有未完成事件（>=1 項），重新開啟選單；若全數完成則徹底解除暫停
-      const remainingAlarms = gameState.pendingEvents.filter(e => e.patient.assignedRoom === roomNum);
+      const remainingAlarms = roomPending(roomNum);
       if (_wasIntercom) {
         gameState.isPaused = false;   // 對講機處理完：人還在護理站
       } else if (_wasWard) {
         const more = wardPending();
         if (more.length) triggerEventModal(more[0]); else gameState.isPaused = false;
       } else if (remainingAlarms.length >= 1) {
-        openMultiEventModal(roomNum);
+        markFollowRoom(roomNum); openMultiEventModal(roomNum);
       } else {
+        if (roomNum) markFollowRoom(roomNum);
         gameState.isPaused = false;
       }
 

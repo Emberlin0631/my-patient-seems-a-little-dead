@@ -240,7 +240,7 @@
     .shift-intern-title { color: #065f46; }
     .tag-intern { background: #a7f3d0; color: #065f46; }
     /* 實習班：學姊提示 */
-    .senior-say { position: absolute; left: 12px; bottom: 12px; z-index: 74; max-width: min(460px, calc(100% - 24px)); display: flex; gap: 10px; align-items: flex-start; background: #ecfdf5; color: #064e3b; border: 2px solid #059669; border-radius: 14px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14.5px; line-height: 1.6; cursor: pointer; animation: fadeIn .2s ease-out; }
+    .senior-say { position: absolute; left: 12px; bottom: 12px; z-index: 74; max-width: min(460px, calc(100% - 24px)); display: flex; gap: 10px; align-items: flex-start; background: #ecfdf5; color: #064e3b; border: 2px solid #059669; border-radius: 14px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.45); font-size: 14.5px; line-height: 1.6; pointer-events: none; animation: fadeIn .2s ease-out; }
     .senior-say .ss-badge { flex: none; background: #059669; color: #fff; font-weight: 900; font-size: 12px; border-radius: 999px; padding: 3px 9px; margin-top: 2px; }
     .senior-say .ss-x { flex: none; color: #047857; font-size: 12px; margin-left: 4px; opacity: .8; }
     .senior-say-inline { margin-top: 10px; background: #ecfdf5; color: #064e3b; border: 1.5px solid #059669; border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; }
@@ -11123,6 +11123,7 @@
       });
     }
     let _seniorSayQ = [], _seniorSayTimer = null;
+    const SENIOR_SAY_MS = 6000;   // 實習班學姊提示顯示 6 秒
     const SENIOR_URGENT = new Set(['priority', 'drillGood', 'drillBad', 'stage2', 'cat_emergent', 'start']);
     function seniorSay(key, text) {
       if (!gameState.isIntern || !text) return;
@@ -11146,11 +11147,10 @@
       const old = document.getElementById('senior-say'); if (old) old.remove();
       if (_seniorSayTimer) { clearTimeout(_seniorSayTimer); _seniorSayTimer = null; }
       const text = _seniorSayQ.shift(); if (!text || gameState.isGameOver) { _seniorSayQ = []; return; }
-      const el = document.createElement('div'); el.id = 'senior-say'; el.className = 'senior-say'; el.title = '點一下關閉';
-      el.innerHTML = `<span class="ss-badge">學姊</span><span>${text}</span><span class="ss-x">✕</span>`; el.dataset.text = text;
-      el.onclick = () => _seniorSayNext();
+      const el = document.createElement('div'); el.id = 'senior-say'; el.className = 'senior-say';
+      el.innerHTML = `<span class="ss-badge">學姊</span><span>${text}</span>`; el.dataset.text = text;
       vp.appendChild(el);
-      _seniorSayTimer = setTimeout(_seniorSayNext, Math.max(7000, text.length * 220));
+      _seniorSayTimer = setTimeout(_seniorSayNext, SENIOR_SAY_MS);   // 固定時間後自動消失，不用手動關
     }
     function internTipFor(data) {
       const id = String((data && data.id) || '');

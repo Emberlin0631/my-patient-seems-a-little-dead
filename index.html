@@ -8884,6 +8884,18 @@
       { id: "hand_cream", name: "🧴 香香的護手霜", desc: "洗手洗到龜裂，擦一下香香的心情就好多了。壓力-8（一條可用 3 次）", count: 0, unitCount: 3,
         effect: () => { gameState.stress = Math.max(0, gameState.stress - 8); SoundFX.playClick();
           showToast("擠一點香香的護手霜，搓一搓……壓力 -8。好像又可以再撐一下了。", 4000); } },
+      { id: "mineral_water", name: "💧 礦泉水", desc: "不用走回護理站，隨時隨地都能喝。水分+25（一瓶可喝 10 次）", count: 0, unitCount: 10,
+        effect: () => { gameState.hydration = Math.min(100, gameState.hydration + 25); SoundFX.playDrink();
+          showToast("掏出礦泉水灌一口！水分 +25%。", 3000); } },
+      { id: "sports_drink", name: "🥤 寶礦力", desc: "流汗流到虛脫的救星，水分+30、體力+10", count: 0,
+        effect: () => { gameState.hydration = Math.min(100, gameState.hydration + 30); gameState.stamina = Math.min(100, gameState.stamina + 10); SoundFX.playDrink();
+          showToast("一口氣喝掉寶礦力！水分 +30%，體力 +10。", 3500); } },
+      { id: "compression_socks", name: "🧦 彈性襪", desc: "站一整天腿不會腫，穿上後本班體力自然消耗減半（穿一次有效到下班）", count: 0,
+        effect: () => { gameState.socks = true; SoundFX.playClick();
+          showToast("穿上彈性襪，腿輕鬆多了！本班體力自然消耗減半。", 4000); } },
+      { id: "pocket_notes", name: "📒 口袋小抄本", desc: "把常用紀錄寫成範本抄起來，用了之後本班補紀錄每筆 -2 分鐘", count: 0,
+        effect: () => { gameState.recordFast = 2; SoundFX.playClick();
+          showToast("翻開口袋小抄本，紀錄照範本寫超快！本班補紀錄每筆 -2 分鐘。", 4000); } },
       { id: "bento", name: "🍗 外送的雞腿便當", desc: "這才是給人吃的，消耗30分鐘體力+70、水分-20，吃完會糖暈", portion: true, halves: 0,
         eat: (f) => { gameState.stamina = Math.min(100, gameState.stamina + 70 * f); gameState.hydration = Math.max(0, gameState.hydration - 20 * f); SoundFX.playDrink();
           const sleepy = mealSleepy(f);
@@ -9302,8 +9314,8 @@
 
     /* ===== 上班前道具購買 ===== */
     const SHOP_INCOME = { day: 1343, evening: 1943, night: 2343, intern: 1343 };   // 實習班薪水同白班   // 各班起始金額＝當班薪水
-    const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145, hand_cream: 150 };
-    const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2, hand_cream: 1 };   // 每樣道具購買上限（未列者不限）
+    const SHOP_PRICE = { boba: 80, bento: 140, hospital_meal: 60, pineapple_cake: 100, iced_americano: 80, snow_half: 130, snow_full: 145, hand_cream: 150, mineral_water: 30, sports_drink: 45, compression_socks: 199, pocket_notes: 120 };
+    const SHOP_MAX = { boba: 2, bento: 1, hospital_meal: 1, pineapple_cake: 3, iced_americano: 2, hand_cream: 1, mineral_water: 1, sports_drink: 2, compression_socks: 1, pocket_notes: 1 };   // 每樣道具購買上限（未列者不限）
     let shopCart = {}, shopLoadout = {}, shopLeft = null;
     function shopSpent() { return Object.keys(shopCart).reduce((a, k) => a + (shopCart[k] || 0) * (SHOP_PRICE[k] || 0), 0); }
     function renderShop() {
@@ -9380,7 +9392,7 @@
        ======================================================== */
     function initGameByShift(shift) {
       backpack.forEach(i => { if (i.portion) i.halves = (shopLoadout[i.id] || 0) * (i.unitHalves || 2); else i.count = (shopLoadout[i.id] || 0) * (i.unitCount || 1); });
-      gameState.recordExtra = 0; gameState.bentoHalves = 0; gameState.pineapple = false; gameState.speedBuffs = [];   // 道具改為上班前自行購買
+      gameState.recordExtra = 0; gameState.recordFast = 0; gameState.socks = false; gameState.bentoHalves = 0; gameState.pineapple = false; gameState.speedBuffs = [];   // 道具改為上班前自行購買
 
       const shuffled = [...PATIENT_POOL].sort(() => 0.5 - Math.random());
       const shiftRooms = gameState.isIntern ? INTERN.rooms : (SHIFT_ROOMS[shift] || SHIFT_ROOMS.day);
@@ -11993,7 +12005,7 @@
 
       applyShiftAnxiety(_t0, gameState.currentTime);   // 交班倒數焦慮
       gameState.hydration = Math.max(0, gameState.hydration - HYDRATION_DRAIN_PER_MIN * minutes * (gameState.isIntern ? INTERN.hydrationMult : 1));   // 水分每分鐘平均扣（多分鐘處置也照實扣；實習班較慢）
-      if (gameState.currentTime % (gameState.isIntern ? 30 : 15) === 0) gameState.stamina = Math.max(0, gameState.stamina - 1);
+      if (gameState.currentTime % ((gameState.isIntern ? 30 : 15) * (gameState.socks ? 2 : 1)) === 0) gameState.stamina = Math.max(0, gameState.stamina - 1);
 
       // 每 20 遊戲分鐘執行各床個案劇情推進機率檢定 (解耦時間，依個案劇情機率滾動；16:00後不再生成新劇情階段，專注清空現存待辦)
       if (gameState.currentTime % 20 === 0 && gameState.currentTime < gameState.shiftEndTime) {
@@ -12344,6 +12356,7 @@
       checkStationWard();
     }
     function drinkWaterAction() { doAtStation('喝水', drinkWaterNow); }
+    function recordMinutes() { return Math.max(1, 5 + (gameState.recordExtra || 0) - (gameState.recordFast || 0)); }
     function writeRecordAction() {
       if (gameState.isPaused || gameState.isGameOver) return;
       if (gameState.records <= 0) { showToast("目前沒有積欠未完成的護理紀錄喔！"); return; }
@@ -12378,8 +12391,8 @@
       SoundFX.playClick();
       gameState.records--;
       gameState.stamina = Math.max(0, gameState.stamina - 3);
-      const _rt = 5 + (gameState.recordExtra || 0);
-      showToast(`在護理站飛速補完 1 筆紀錄！耗時 ${_rt} 分鐘${gameState.recordExtra ? '（吃飽想睡，+' + gameState.recordExtra + ' 分）' : ''}。`);
+      const _rt = recordMinutes();
+      showToast(`在護理站飛速補完 1 筆紀錄！耗時 ${_rt} 分鐘${gameState.recordExtra ? '（吃飽想睡，+' + gameState.recordExtra + ' 分）' : ''}${gameState.recordFast ? '（小抄本 -' + gameState.recordFast + ' 分）' : ''}。`);
       advanceTime(_rt);
       updateHUD();
     }
@@ -12903,11 +12916,11 @@
 
       document.getElementById("rep-stress").innerText = `${gameState.stress}%`;
       document.getElementById("rep-body").innerText = `${gameState.stamina}% / ${Math.round(gameState.hydration)}%`;
-      document.getElementById("rep-records").innerText = `${gameState.records} 筆 (功德加班 ${gameState.records * (5 + (gameState.recordExtra || 0))} 分鐘)`;
+      document.getElementById("rep-records").innerText = `${gameState.records} 筆 (功德加班 ${gameState.records * recordMinutes()} 分鐘)`;
       document.getElementById("rep-favor").innerText = `${gameState.seniorFavor}分 / ${gameState.patientSafety}分`;
 
       const overtimeMinutes = Math.max(0, gameState.currentTime - gameState.shiftEndTime);
-      const recordOvertime = gameState.records * (5 + (gameState.recordExtra || 0));
+      const recordOvertime = gameState.records * recordMinutes();
       const totalOvertime = overtimeMinutes + recordOvertime;
 
       const finishH = Math.floor(gameState.currentTime / 60) % 24;

@@ -9581,6 +9581,13 @@
       gameState.shiftEndTime = endTime;
       // 只保留落在本班時段 [開班, 交班) 內的排程事件
       gameState.scheduledEventsQueue = timedCandidates.filter(e => e.time >= startTime && e.time < endTime);
+      // 給藥時間前後 1 小時：給藥類常規提前 1 小時跳出（不早於開班），給藥時間後 1 小時內完成才算準時
+      gameState.scheduledEventsQueue.forEach(e => {
+        const d = e.data;
+        if (!d || d.category !== 'routine' || !isMedRoutine(d)) return;
+        d._dueBy = e.time + MED_WINDOW;
+        e.time = Math.max(e.time - MED_WINDOW, startTime);
+      });
       gameState.isBloodDrawShift = isBloodShift;
       try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }   // 檢驗報告（要在確定是否為抽血班之後排）
       // 壓力值起始為 0%，體力與水分起始為 100%！
@@ -10274,7 +10281,7 @@
         gameState.pendingEvents = gameState.pendingEvents.filter(e => e !== ev);
         const timeCost = (ev.data.isOralMed || ev.data.isMorphine) ? 2 : (ev.data.timeCost || 2);
         const spawnTime = ev.data.spawnTime || ev.time || gameState.currentTime;
-        const isOverdue = gameState.currentTime > (spawnTime + 120);
+        const isOverdue = gameState.currentTime > routineDueBy(ev.data, spawnTime);
 
         if (ev.data.isOralMed) {
           if (!isOverdue) {
@@ -11119,6 +11126,9 @@
       return (map && tag && map[tag]) || '';
     }
     // 常規事項逾時：記進交班回顧，說明為什麼要準時
+    const MED_WINDOW = 60;   // 給藥：給藥時間前後 1 小時
+    function isMedRoutine(d) { return !!(d && (d.isOralMed || d.isMorphine || d.isAntibiotic || d.isInfusion)); }
+    function routineDueBy(d, spawnTime) { return (d && d._dueBy !== undefined) ? d._dueBy : spawnTime + 120; }
     const ROUTINE_LATE_WHY = {
       oral: ['給口服藥', '口服的標靶藥、類固醇、排鐵劑等要按時服用才能維持藥效；延遲會影響療效，也要補寫延遲紀錄。'],
       vs: ['量 vital sign', '生命徵象是發現病情變化的第一線，延遲測量可能錯過發燒、低血壓等早期惡化徵兆。'],
@@ -11131,7 +11141,7 @@
         const w = ROUTINE_LATE_WHY[kind]; if (!w) return;
         (gameState.decisionLog = gameState.decisionLog || []).push({
           t: gameState.currentTime, room: p ? p.assignedRoom : '', name: p ? p.name : '', cat: 'routine',
-          title: `常規：${w[0]}`, chosen: `超過 2 小時才完成（病人安全 ${safety}）`, best: `在 2 小時內完成${w[0]}`, grade: 'bad', hint: w[1]
+          title: `常規：${w[0]}`, chosen: `${kind === 'vs' ? '到點超過 2 小時' : '超過給藥時間 1 小時'}才完成（病人安全 ${safety}）`, best: `${kind === 'vs' ? '到點後 2 小時內' : '給藥時間前後 1 小時內'}完成${w[0]}`, grade: 'bad', hint: w[1]
         });
       } catch (e) { }
     }
@@ -11179,7 +11189,7 @@
       const tips = {
         clinical: nX ? `有 ${nX} 題選得有風險，下方交班回顧有每一題的解析。` : '有幾題可以選得更好，看一下下方交班回顧的解析。',
         emergent: missed ? `有 ${missed} 件突發事件逾時沒處理。紅框響起時，先放下手邊的事趕過去。` : `紅框響起後平均 ${avgR} 分鐘才到，聽到警報要先放下手邊的事。`,
-        time: late ? `常規逾時 ${late} 件。給藥、量 V/S 到點後 2 小時內要完成，空檔時先把常規做掉。` : `加班 ${ot} 分鐘，空檔時先把常規和紀錄做掉，交班前比較不會塞車。`,
+        time: late ? `常規逾時 ${late} 件。給藥要在給藥時間前後 1 小時內、量 V/S 要在到點後 2 小時內完成，空檔時先把常規做掉。` : `加班 ${ot} 分鐘，空檔時先把常規和紀錄做掉，交班前比較不會塞車。`,
         self: minS <= minH ? `體力一度掉到 ${minS}%，有空檔就回護理站小歇或吃東西。` : `水分一度掉到 ${minH}%，經過護理站就順手喝水。`,
         records: `紀錄欠 ${rec} 筆，空檔時回護理站補，不然會變成無償加班。`
       };
@@ -11719,7 +11729,7 @@
       gameState.pendingEvents.forEach(ev => {
         if (ev.data && (ev.data.isOralMed || ev.data.isVitalSign || ev.data.isAntibiotic || ev.data.isMorphine || ev.data.isInfusion)) {
           const spawnTime = ev.data.spawnTime || ev.time || gameState.currentTime;
-          if (spawnTime && gameState.currentTime > (spawnTime + 120)) {
+          if (spawnTime && gameState.currentTime > routineDueBy(ev.data, spawnTime)) {
             ev.isOverdue = true;
           }
         }

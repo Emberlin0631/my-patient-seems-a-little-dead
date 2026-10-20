@@ -3695,6 +3695,25 @@
         ]
       }
     });
+    // 家屬到護理站詢問 PRN 止痛（在護理站處理；可排進個案排程）
+    Object.assign(EVENT_TEMPLATES.special, {
+      "SPECIAL_PRN_PAIN_REQUEST": {
+        "id": "SPECIAL_PRN_PAIN_REQUEST", "category": "special", "atStation": true,
+        "title": "家屬詢問能否給 PRN 止痛",
+        "desc": "【病房】家屬到護理站說病人又開始痛了，看起來很不舒服，問能不能給 PRN 的止痛藥。",
+        "deadlineMinutes": 30, "onExpire": { "penalty": { "stress": 5, "favor": -3 }, "toast": "家屬又跑來護理站問了一次止痛藥，語氣很著急。" },
+        "options": [
+          { "keyTag": "A", "text": "跟家屬說馬上過去，到床邊評估疼痛的部位、分數與性質，依 PRN 醫囑給止痛藥，之後再評估", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 1, "safety": 6, "favor": 2,
+            "hint": "家屬反映疼痛要先到床邊評估，再依 PRN 醫囑給藥，給藥後要再評估效果並記錄。",
+            "outcomes": [{ "event": "ROUTINE_MORPHINE", "delayMin": 0, "toast": "記得把 PRN 止痛藥拿去給病人。" }] },
+          { "keyTag": "B", "text": "沒去看病人，直接拿 PRN 止痛藥請家屬帶回去給她吃", "time": 1, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": -6, "favor": 0,
+            "hint": "給 PRN 前要先評估病人，藥物也要由護理師親自給並確認病人服下，不能交給家屬。" },
+          { "keyTag": "C", "text": "跟家屬說 8 點才給過止痛藥，要等下一次的給藥時間", "time": 1, "stress": 2, "stamina": 0, "hydration": 0, "records": 0, "safety": -8, "favor": -3,
+            "hint": "有 PRN 醫囑就是為了處理突發的疼痛，安寧照護以舒適為優先，不該讓病人痛著等下一次常規給藥。" },
+          { "keyTag": "D", "text": "先去其他床，等等再處理", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+        ]
+      }
+    });
     const ALL_EVENT_TEMPLATES = {
       ...EVENT_TEMPLATES.routine,
       ...EVENT_TEMPLATES.special,
@@ -3857,7 +3876,7 @@
         const sT = top.data.alarmSpawnTime || top.data.spawnTime || top.time || gameState.currentTime;
         tail = ` [剩${fmtRemain(Math.max(0, top.data.deadlineMinutes - (gameState.currentTime - sT)))}]`;
       }
-      el.innerText = `${list.every(e => e.data.atStation) ? '📄 檢驗報告' : '🏥 護理站待辦'}${list.length > 1 ? `×${list.length}` : ''}${tail}`;
+      el.innerText = `${list.every(e => String(e.data.id || '').startsWith('LAB_')) ? '📄 檢驗報告' : '🏥 護理站待辦'}${list.length > 1 ? `×${list.length}` : ''}${tail}`;
       el.style.display = 'inline-block';
     }
 
@@ -3987,7 +4006,8 @@
           admitStamina: template.admitStamina,
           admitRecords: template.admitRecords,
           isBedsore: item.isBedsore !== undefined ? item.isBedsore : template.isBedsore,
-          isOcclusion: item.isOcclusion !== undefined ? item.isOcclusion : template.isOcclusion
+          isOcclusion: item.isOcclusion !== undefined ? item.isOcclusion : template.isOcclusion,
+          atStation: item.atStation !== undefined ? item.atStation : template.atStation
         };
       }
 
@@ -9823,7 +9843,7 @@
       EMERGENT_CRITICAL_RESPIRATORY_FAILURE: "🚨 呼吸衰竭", EMERGENT_CRITICAL_ON_ENDO_TUBE: "🚨 緊急插管",
       EMERGENT_VITAL_DYSPNEA: "🚨 呼吸喘", EMERGENT_VITAL_ARREST: "🚨 Code Blue",
       SPECIAL_CHEMO: "💉 化療", SPECIAL_ELOPEMENT: "🏃 病人不見了", SPECIAL_FALL: "🤕 跌倒",
-      SPECIAL_NIGHT_INSOMNIA: "😵 睡不著", SPECIAL_NIGHT_PAIN: "😣 爆發痛",
+      SPECIAL_NIGHT_INSOMNIA: "😵 睡不著", SPECIAL_PRN_PAIN_REQUEST: "💊 家屬要 PRN", SPECIAL_NIGHT_PAIN: "😣 爆發痛",
       CALL_AC: "🔔 冷氣好冷", CALL_URINAL: "🔔 要尿壺", CALL_IV_DONE: "🔔 點滴滴完", CALL_CHEST: "🔔 胸口悶", CALL_ASK_TIME: "🔔 問換藥時間",
       EMERGENT_CHEMO_EXTRAVASATION: "🚨 化療外滲", EMERGENT_FAMILY_IHCA: "🚨 家屬倒地", EMERGENT_ICH: "🚨 顱內出血", EMERGENT_NIGHT_DELIRIUM: "🚨 躁動拉管"
     };

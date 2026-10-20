@@ -315,3 +315,4 @@ PICC換藥（1/6，20分，體力-5，紀錄+1）／CVC換藥（1/7，15分，�
 - 上線流程：用 `python3 tools/strip_unreleased.py index.html 輸出.html` 拿掉未上線個案後再推上 GitHub。
 - 個案可加 `hideSchedule: true`，圖鑑頁不顯示「常規排程發生時間」。
 - 新事件範本 `SPECIAL_PRN_PAIN_REQUEST`（家屬到護理站詢問 PRN 止痛，在護理站處理，30 分鐘時限）；事件範本可加 `atStation: true` 改在護理站處理。護理站徽章：全是檢驗報告才顯示「📄 檢驗報告」。
+- 個案排程項目可加 `onlyKeys: ["A"]`，該事件只保留指定選項。

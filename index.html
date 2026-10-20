@@ -3990,7 +3990,7 @@
           deadlineMinutes: item.deadlineMinutes || template.deadlineMinutes || (isEmerg ? 25 : undefined),
           onExpire: item.onExpire || template.onExpire,
           failEndingReason: item.failEndingReason || template.failEndingReason || (isEmerg ? `【突發急症延誤救治】病房 ${room} 呼叫鈴長達 25 分鐘無人理會，病患突發休克身亡！` : undefined),
-          options: item.customOptions || item.options || template.options || [],
+          options: (item.customOptions || item.options || template.options || []).filter(o => !item.onlyKeys || item.onlyKeys.includes(o.keyTag)),   // 排程可用 onlyKeys 只留部分選項
           // 常規事件類型旗標：個案/範本明寫的優先，否則由範本的 routineType 推導（引擎靠這些旗標決定完成/逾期/後續連鎖）
           isOralMed: item.isOralMed !== undefined ? item.isOralMed : (template.isOralMed !== undefined ? template.isOralMed : template.routineType === 'oral_med'),
           isVitalSign: item.isVitalSign !== undefined ? item.isVitalSign : (template.isVitalSign !== undefined ? template.isVitalSign : template.routineType === 'vital_sign'),

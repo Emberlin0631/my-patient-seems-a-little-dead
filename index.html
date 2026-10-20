@@ -1810,6 +1810,15 @@
         </div>
       </div>
 
+      <!-- 紀念：個案離世後顯示家人的話 -->
+      <div class="info-modal" id="memorial-modal" style="max-width:560px;" onclick="event.stopPropagation();">
+        <div class="info-modal-header">
+          <h3 style="color:#f9a8d4;" id="memorial-title">💌</h3>
+        </div>
+        <div id="memorial-body" style="font-size:15px; line-height:1.95; color:#f1f5f9; white-space:pre-wrap; padding:4px 2px 10px;"></div>
+        <button type="button" class="restart-btn" style="width:100%;" onclick="closeMemorial()">繼續</button>
+      </div>
+
       <!-- 接班單 -->
       <div class="info-modal" id="brief-modal" style="max-width:860px;" onclick="event.stopPropagation();">
         <div class="info-modal-header">
@@ -3410,10 +3419,7 @@
         "desc": "【病房】醫師已宣告病人死亡。醫師死亡宣告後，該如何處置？",
         "timeCost": 15,
         "options": [
-          { "keyTag": "A", "text": "與家屬及學姐細心地為病患打扮，讓他好好地走最後一程（耗時 15 分鐘，體力 -5，壓力 -3，紀錄 +1）", "time": 15, "stress": -3, "stamina": -5, "hydration": 0, "records": 1, "safety": 0, "favor": 0 },
-          { "keyTag": "B", "text": "大概擦一下就好，反正死人不會抱怨（耗時 8 分鐘，體力 -3，壓力 +3，紀錄 +1，10% 機率家屬毆打護理人員）", "time": 8, "stress": 3, "stamina": -3, "hydration": 0, "records": 1, "safety": 0, "favor": 0, "endShiftP": 0.10, "endShift": "【家屬毆打護理人員】遺體護理處理草率，家屬情緒失控，當場動手毆打護理人員，你被送往急診驗傷，這班到此為止。" },
-          { "keyTag": "C", "text": "請家屬自己擦一擦（耗時 2 分鐘，壓力 -10，紀錄 +1，20% 機率家屬毆打護理人員）", "time": 2, "stress": -10, "stamina": 0, "hydration": 0, "records": 1, "safety": 0, "favor": 0, "endShiftP": 0.20, "endShift": "【家屬毆打護理人員】遺體護理處理草率，家屬情緒失控，當場動手毆打護理人員，你被送往急診驗傷，這班到此為止。" },
-          { "keyTag": "D", "text": "先去其他床，等等再來（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+          { "keyTag": "A", "text": "與家屬及學姐細心地為病患打扮，讓他好好地走最後一程（耗時 15 分鐘，體力 -5，壓力 -3，紀錄 +1）", "time": 15, "stress": -3, "stamina": -5, "hydration": 0, "records": 1, "safety": 0, "favor": 0 }
         ]
       }
     });
@@ -3905,7 +3911,7 @@
         if (e.patient && (e.patient.isDead || e.patient.isDischarged)) return;
         if (e.data.dischargeGate) {   // 出院抽選：已在出院流程中、或量VS曾出現特殊/突發事件的個案不再抽
           const pt = e.patient;
-          if (pt._discharging || pt._vsAbnormal) return;
+          if (pt._discharging || pt._vsAbnormal || pt.noDischarge) return;
           if (gameState.isIntern && (gameState._internDischarges || 0) >= 1) return;   // 實習班最多出院一床
           if (!(Math.random() < prob * (gameState.pineapple ? 2 : 1))) return;
           pt._discharging = true;
@@ -8844,6 +8850,29 @@
         ]
       }
     ];
+    // 尚未上線的個案（enabled: false）：正式遊戲不會出現；網址加 ?preview=1 才會出現，方便測試
+    (function () {
+      let preview = false; try { preview = /[?&]preview=1/.test(location.search); } catch (e) { }
+      for (let i = PATIENT_POOL.length - 1; i >= 0; i--) if (PATIENT_POOL[i].enabled === false && !preview) PATIENT_POOL.splice(i, 1);
+    })();
+    // 個案可限定班別：shifts: ["day"]（實習班不算白班）
+    // 紀念個案：離世後跳出家人寫給她的話（遊戲暫停，按「繼續」回到遊戲）
+    function openMemorial(p) {
+      if (gameState.isGameOver) return;
+      document.getElementById('memorial-title').innerText = `💌 給${p.name}`;
+      document.getElementById('memorial-body').innerText = p.memorial;
+      gameState._memorialPaused = !gameState.isPaused; gameState.isPaused = true;
+      openModal('memorial-modal');
+    }
+    function closeMemorial() {
+      closeModal('memorial-modal');
+      if (gameState._memorialPaused) { gameState._memorialPaused = false; if (!gameState.activeEvent) gameState.isPaused = false; }
+    }
+    function patientFitsShift(p, shift) {
+      if (!p.shifts) return true;
+      if (gameState.isIntern) return p.shifts.includes('intern');
+      return p.shifts.includes(shift);
+    }
 
     const DICT_DB = [
       { word: "New Pe", def: "新病人（New Patient）。每接一位代表需要耗費大量時間做全身身體評估、病史詢問與繁複的入院護理紀錄。" },
@@ -9422,7 +9451,7 @@
       backpack.forEach(i => { if (i.portion) i.halves = (shopLoadout[i.id] || 0) * (i.unitHalves || 2); else i.count = (shopLoadout[i.id] || 0) * (i.unitCount || 1); });
       gameState.recordExtra = 0; gameState.recordFast = 0; gameState.socks = false; gameState.bentoHalves = 0; gameState.pineapple = false; gameState.speedBuffs = [];   // 道具改為上班前自行購買
 
-      const shuffled = [...PATIENT_POOL].sort(() => 0.5 - Math.random());
+      const shuffled = PATIENT_POOL.filter(p => patientFitsShift(p, shift)).sort(() => 0.5 - Math.random());
       const shiftRooms = gameState.isIntern ? INTERN.rooms : (SHIFT_ROOMS[shift] || SHIFT_ROOMS.day);
       gameState.activePatients = shuffled.slice(0, shiftRooms.length);
       gameState.activePatients.forEach((p, idx) => {
@@ -11940,6 +11969,12 @@
       if (gameState.isIntern) { try { internStageTick(_t0, gameState.currentTime); } catch (e) { } }
       try { bloodHoldTick(); } catch (e) { }
       runAdmissionDrawsBetween(_t0, gameState.currentTime);   // 入院抽選（每 30 分鐘）
+      // 固定死亡時間的個案（例：安寧病人 11:30 安詳離世）
+      gameState.activePatients.forEach(p => {
+        if (!p.fixedDeath || p.isDead || p.isDischarged) return;
+        const td = parseClock(p.fixedDeath.time);
+        if (td !== null && _t0 < td && gameState.currentTime >= td) killPatient(p, p.fixedDeath.text || '安詳離世');
+      });
       fireDueScheduledEvents(false);   // 個案排程：到點觸發
       processDelayedEvents();          // 事件延伸：到點觸發
       processLabReports();             // 檢驗報告回來
@@ -12214,7 +12249,7 @@
       const inWard = new Set(gameState.activePatients.map(p => p.id));
       (gameState.retiredIds || []).forEach(id => inWard.add(id));
       (gameState.admissionQueue || []).forEach(a => inWard.add(a.patientId));
-      return PATIENT_POOL.filter(pp => !inWard.has(pp.id));
+      return PATIENT_POOL.filter(pp => !inWard.has(pp.id) && !pp.fixedDeath && patientFitsShift(pp, gameState.currentShift));   // 固定死亡時間的個案只在開班時出現
     }
     function runAdmissionDraw(t) {
       if (!ADMISSION.enabled || !admissionDrawAllowed(t)) return;
@@ -12794,7 +12829,7 @@
       listC.style.display = 'none';
       detC.style.display = 'block';
 
-      const section = (icon, title, body) => `
+      const section = (icon, title, body) => !String(body || '').trim() ? '' : `
         <div style="background:#1e293b; padding:12px 14px; border-radius:10px; border:1px solid #334155; margin-bottom:10px;">
           <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:6px;">${icon} ${title}</div>
           <div style="font-size:12.5px; line-height:1.75; color:#e2e8f0;">${body}</div>
@@ -12824,6 +12859,7 @@
         ${section('🩺', '臨床病史', renderTerms(p.history, true))}
         ${section('👪', '家庭背景', renderTerms(p.family, true))}
         ${section('🎭', '性格特質', renderTerms(p.personality, true))}
+        ${p.memorial ? section('💌', '兒子想對她說', renderTerms(p.memorial, true)) : ''}
         ${section('🕒', '常規排程發生時間', `
           <div style="display:flex; flex-wrap:wrap; gap:10px;">
             ${shiftBlock('☀️ 白班 08:00–16:00', '#fbbf24', groups.day)}

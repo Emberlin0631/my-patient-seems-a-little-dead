@@ -1180,6 +1180,17 @@
     .perf-box .pf-tag { font-size: 11px; font-weight: 900; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
     .pf-good { background: #065f46; color: #a7f3d0; } .pf-ok { background: #78350f; color: #fde68a; } .pf-bad { background: #7f1d1d; color: #fecaca; }
     .perf-box .pf-tip { margin-top: 6px; color: #fde68a; font-weight: 800; line-height: 1.5; }
+    .brief-grid, .ho-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+    .brief-card, .ho-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 8px 10px; font-size: 12.5px; line-height: 1.55; color: #e2e8f0; text-align: left; }
+    .brief-card .bc-h, .ho-card .bc-h { font-weight: 900; color: #f8fafc; font-size: 13.5px; }
+    .brief-card .bc-h b, .ho-card .bc-h b { color: #38bdf8; margin-right: 4px; }
+    .brief-card .bc-dx { color: #94a3b8; }
+    .brief-card .bc-warn { color: #fca5a5; }
+    .brief-card .bc-todo { color: #fde68a; }
+    #brief-go, #handover-modal > .restart-btn { position: sticky; bottom: 0; box-shadow: 0 -6px 14px rgba(15,23,42,.9); }
+    .ho-card label { display: flex; gap: 6px; align-items: flex-start; padding: 3px 2px; cursor: pointer; border-radius: 6px; }
+    .ho-card label:hover { background: #334155; }
+    .ho-card input { margin-top: 3px; flex: none; }
     .pause-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 60; background: rgba(15,23,42,.92); color: #fbbf24; border: 2px solid #fbbf24; border-radius: 999px; padding: 8px 18px; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
     @media (max-width: 820px) and (orientation: portrait), (orientation: landscape) and (max-height: 520px) { .kbd-hint { display: none; } }
     /* 學姊留言 */
@@ -1719,6 +1730,7 @@
         <button class="speed-btn" id="btn-speed-5" onclick="setGameSpeed(5)">5x</button>
         <button class="hud-btn" id="hud-gfx-btn" onclick="cycleGraphics()">🎨 3D高</button>
         <button class="hud-btn" id="hud-sound-btn" onclick="toggleAudio()">🔊 聲音</button>
+        <button class="hud-btn" onclick="openShiftBrief(false)">📋 交班單</button>
         <button class="hud-btn" onclick="openDictModal()">📖 字典</button>
         <button class="hud-btn" onclick="openItemModal()">🎒 道具</button>
         <button class="hud-btn" style="background:#334155;" onclick="returnToStartScreen()">🚪 離開</button>
@@ -1779,6 +1791,25 @@
           <div class="event-desc" id="event-desc"></div>
           <div class="options-grid" id="options-container"></div>
         </div>
+      </div>
+
+      <!-- 接班單 -->
+      <div class="info-modal" id="brief-modal" style="max-width:860px;" onclick="event.stopPropagation();">
+        <div class="info-modal-header">
+          <h3 style="color:#38bdf8;" id="brief-title">📋 接班單</h3>
+          <button class="hud-btn" onclick="closeShiftBrief()">✕ 關閉</button>
+        </div>
+        <div id="brief-body"></div>
+        <button type="button" class="restart-btn" id="brief-go" style="width:100%; margin-top:10px;" onclick="closeShiftBrief()">接班完成，開始上班 →</button>
+      </div>
+      <!-- 下班交班 -->
+      <div class="info-modal" id="handover-modal" style="max-width:920px;" onclick="event.stopPropagation();">
+        <div class="info-modal-header">
+          <h3 style="color:#fbbf24;">🗒️ 下班前交班：每床勾出要交代的重點</h3>
+        </div>
+        <div style="font-size:12.5px; color:#94a3b8; margin-bottom:8px;">交班要交「病情變化、還沒做完的事、要注意的風險」。個人瑣事、和病情無關的事不用交，錯的資訊更不能交。</div>
+        <div id="handover-body"></div>
+        <button type="button" class="restart-btn" style="width:100%; margin-top:10px;" onclick="submitHandover()">完成交班 →</button>
       </div>
 
       <!-- 對講機 -->
@@ -9145,7 +9176,7 @@
     }
 
     const SHIFT_LABEL = { intern: '實習班', day: '白班', evening: '小夜', night: '大夜' };
-    const FOCUS_LABEL = { clinical: '臨床判斷', emergent: '突發應變', time: '時間安排', self: '照顧自己', records: '護理紀錄' };
+    const FOCUS_LABEL = { clinical: '臨床判斷', emergent: '突發應變', time: '時間安排', self: '照顧自己', records: '護理紀錄', handover: '交班品質' };
     function playtestRows(col) {
       const bs = (col.stats && col.stats.byShift) || {};
       return ['intern', 'day', 'evening', 'night'].map(k => {
@@ -9622,6 +9653,8 @@
 
       const shiftTitle = gameState.isIntern ? '實習班 (08:00)' : (shift === 'day' ? (isBloodShift ? '白班 (抽血班 07:00)' : '白班 (08:00)') : (shift === 'evening' ? '小夜班 (16:00)' : '大夜班 (00:00)'));
       showToast(`【${gameState.playerName}】正式接掌 ${shiftTitle}！體力/水分 100%，壓力值 0%。`);
+      gameState._handoverOpen = false; gameState._handover = null;
+      setTimeout(() => { try { if (!gameState.isGameOver) openShiftBrief(true); } catch (e) { } }, 300);
       if (gameState.isIntern) {
         if (badgeEl) badgeEl.innerText = `${gameState.playerName} ${gameState.playerGender === 'male' ? '👨‍⚕️' : '👩‍⚕️'}＋學姊`;
         setTimeout(() => seniorSay('start', INTERN_TIPS.start), 1200);
@@ -10682,6 +10715,7 @@
       else if (kk === 's') walkToStation();
       else if (kk === 'i') openItemModal();
       else if (kk === 'c') openIntercom();
+      else if (kk === 'h') openShiftBrief(false);
     });
 
     /* ===== 檢驗報告回來：五級判讀（正常／偏高／偏低／極高／極低） =====
@@ -10783,7 +10817,7 @@
       const r = String(reason || ''), L = [];
       const ot = Math.max(0, gameState.currentTime - gameState.shiftEndTime);
       const rec = gameState.records || 0, safety = gameState.patientSafety, deaths = gameState.deaths || 0;
-      const bad = (gameState.decisionLog || []).filter(x => x.grade === 'bad' && x.cat !== 'routine').length;
+      const bad = (gameState.decisionLog || []).filter(x => x.grade === 'bad' && x.cat !== 'routine' && x.cat !== 'handover').length;
       const ok = (gameState.decisionLog || []).filter(x => x.grade === 'ok').length;
       if (isFailure) {
         if (/過勞昏倒/.test(r)) L.push('你倒下去的時候我剛好在打紀錄，還好我腿比較長先接住你。下次珍奶不要省。');
@@ -10986,7 +11020,7 @@
     ];
     function awardThankCards(isFailure) {
       if (isFailure || gameState.patientSafety < 80) return [];
-      const log = (gameState.decisionLog || []).filter(x => x.cat !== 'routine' && x.cat !== 'ward' && x.grade !== 'na' && x.room && x.room !== '護理站');
+      const log = (gameState.decisionLog || []).filter(x => x.cat !== 'routine' && x.cat !== 'ward' && x.cat !== 'handover' && x.grade !== 'na' && x.room && x.room !== '護理站');
       const byRoom = {}; log.forEach(x => (byRoom[x.room] = byRoom[x.room] || []).push(x));
       const pts = Object.keys(byRoom).filter(r => byRoom[r].every(x => x.grade === 'best'))
         .map(r => gameState.activePatients.find(p => p.assignedRoom === r)).filter(p => p && !p.isDead)
@@ -11165,11 +11199,110 @@
       return null;
     }
 
+
+    /* ===== 交班系統：開班看接班單；下班前每床勾出要交代的重點，計入表現分析與交班回顧 ===== */
+    const HANDOVER_TRIVIA = [
+      '病人午餐吃了排骨飯，說有點鹹', '家屬人很好，有送水果給護理站', '病人喜歡看八點檔，晚上不要吵他', '病人說護理師很漂亮',
+      '病人的手機充電線借給隔壁床', '病人說醫院的枕頭太硬', '家屬問停車場怎麼繳費', '病人今天心情不錯，有跟隔壁床聊天',
+      '病人說想吃麥當勞', '家屬下午三點會來探病'
+    ];
+    function patientLines(p) {
+      let t = p.tubes; if (typeof t === 'string') { try { t = JSON.parse(t.replace(/'/g, '"')); } catch (e) { t = [t]; } }
+      return (Array.isArray(t) ? t : []).filter(Boolean);
+    }
+    function pendingFor(p) {
+      return gameState.pendingEvents.filter(e => e.patient === p).map(e => String(e.data.title || '').replace(/[（(][^）)]*[）)]/g, '').trim());
+    }
+    function openShiftBrief(isStart) {
+      const sn = shiftInfo().name, list = gameState.activePatients.filter(p => !p.isDead && !p.isDischarged);
+      document.getElementById('brief-title').innerText = isStart ? `📋 接班單：${sn}，你今天顧 ${list.length} 床` : `📋 交班單（${String(Math.floor(gameState.currentTime / 60) % 24).padStart(2, '0')}:${String(gameState.currentTime % 60).padStart(2, '0')}）`;
+      const prevNote = gameState.currentShift === 'evening' ? '白班留下 2 筆未完成紀錄。' : '';
+      document.getElementById('brief-body').innerHTML =
+        (isStart ? `<div style="font-size:12.5px; color:#94a3b8; margin-bottom:8px;">上一班學姊交給你的重點。遊戲中隨時可以按「📋 交班單」再看。${prevNote}</div>` : '') +
+        '<div class="brief-grid">' + list.map(p => {
+          const todo = pendingFor(p), lines = patientLines(p);
+          return `<div class="brief-card"><div class="bc-h"><b>${p.assignedRoom}</b>${p.name}${p.age ? `（${p.gender || ''} ${p.age}）` : ''}</div>
+            <div class="bc-dx">${p.diagnosis || ''}${p.purpose ? '｜' + p.purpose : ''}</div>
+            ${p.cautions ? `<div class="bc-warn">⚠️ ${p.cautions}</div>` : ''}
+            ${lines.length ? `<div>🧷 管路：${lines.join('、')}</div>` : ''}
+            ${todo.length ? `<div class="bc-todo">📌 待辦：${todo.slice(0, 4).join('、')}${todo.length > 4 ? ' 等' : ''}</div>` : '<div style="color:#6ee7b7;">✅ 目前沒有待辦</div>'}</div>`;
+        }).join('') + '</div>';
+      document.getElementById('brief-go').style.display = isStart ? '' : 'none';
+      gameState._briefPaused = !gameState.isPaused; if (gameState._briefPaused) gameState.isPaused = true;
+      openModal('brief-modal');
+    }
+    function closeShiftBrief() {
+      closeModal('brief-modal');
+      if (gameState._briefPaused) { gameState._briefPaused = false; if (!gameState.activeEvent) gameState.isPaused = false; }
+    }
+
+    // 下班交班：每床 2～3 個「該交」＋ 2～3 個「不用交／錯誤」的選項
+    function buildHandoverItems() {
+      const log = gameState.decisionLog || [], out = [];
+      gameState.activePatients.filter(p => !p.isDead && !p.isDischarged).forEach(p => {
+        const good = [], bad = [];
+        if (p.cautions) good.push(`注意：${p.cautions}`);
+        const evs = log.filter(x => x.room === p.assignedRoom && ['special', 'emergent', 'drill'].includes(x.cat));
+        const seen = new Set();
+        evs.forEach(x => {
+          const tt = String(x.title || '').replace(/[（(][^）)]*[）)]/g, '').trim(); if (!tt || seen.has(tt)) return; seen.add(tt);
+          good.push(/檢驗報告/.test(tt) ? '今天的檢驗報告有異常，已處理，下一班要追蹤' : `本班發生「${tt}」，已處理，下一班要持續觀察`);
+        });
+        (gameState.delayedEvents || []).filter(d => d.patient === p).forEach(d => {
+          const tp = ALL_EVENT_TEMPLATES[d.eventId]; const tt = tp ? String(tp.title).replace(/[（(][^）)]*[）)]/g, '').trim() : '';
+          if (tt && !seen.has(tt)) { seen.add(tt); good.push(`還沒做：${tt}（交給下一班）`); }
+        });
+        const hadEvent = evs.length > 0;
+        if (!hadEvent) { const ln = patientLines(p); good.push(ln.length ? `本班病況穩定，${ln.join('、')} 管路通暢` : '本班生命徵象穩定，沒有特殊狀況'); }
+        const g = good.slice(0, 3);
+        if (hadEvent) bad.push('本班生命徵象都穩定，沒有特殊狀況');
+        const tv = HANDOVER_TRIVIA.slice().sort(() => Math.random() - 0.5);
+        while (bad.length < (g.length >= 3 ? 2 : 3)) bad.push(tv.shift());
+        const items = g.map(t => ({ t, ok: true })).concat(bad.map(t => ({ t, ok: false }))).sort(() => Math.random() - 0.5);
+        out.push({ p, items });
+      });
+      return out;
+    }
+    function startHandover() {
+      if (gameState._handoverOpen) return;
+      gameState._handoverOpen = true; gameState.isPaused = true;
+      const beds = gameState._handoverBeds = buildHandoverItems();
+      document.getElementById('handover-body').innerHTML = '<div class="ho-grid">' + beds.map((b, i) =>
+        `<div class="ho-card"><div class="bc-h"><b>${b.p.assignedRoom}</b>${b.p.name}</div>` +
+        b.items.map((it, j) => `<label><input type="checkbox" id="ho-${i}-${j}"><span>${it.t}</span></label>`).join('') + '</div>').join('') + '</div>';
+      if (gameState.isIntern) seniorSay('handover_sys', '交班只交病情變化、還沒做完的事和要注意的風險；瑣事不用交，錯的資訊更不能交。');
+      openModal('handover-modal');
+    }
+    function submitHandover() {
+      const beds = gameState._handoverBeds || [];
+      let hit = 0, need = 0, wrong = 0, perfect = 0;
+      beds.forEach((b, i) => {
+        const miss = [], extra = [];
+        b.items.forEach((it, j) => {
+          const c = !!(document.getElementById(`ho-${i}-${j}`) || {}).checked;
+          if (it.ok) { need++; if (c) hit++; else miss.push(it.t); } else if (c) { wrong++; extra.push(it.t); }
+        });
+        if (!miss.length && !extra.length) { perfect++; return; }
+        (gameState.decisionLog = gameState.decisionLog || []).push({
+          t: gameState.currentTime, room: b.p.assignedRoom, name: b.p.name, cat: 'handover', title: '交班',
+          chosen: [miss.length ? `漏交：${miss.join('；')}` : '', extra.length ? `多交：${extra.join('；')}` : ''].filter(Boolean).join('｜'),
+          best: b.items.filter(x => x.ok).map(x => x.t).join('；'), grade: miss.length ? 'bad' : 'ok',
+          hint: '交班要交病情變化、還沒做完的事和要注意的風險；和病情無關的瑣事不用交，與事實不符的資訊（例如有異常卻說穩定）絕對不能交。'
+        });
+      });
+      const score = beds.length ? Math.round((perfect / beds.length) * 100) : 100;
+      gameState._handover = { score, perfect, beds: beds.length, hit, need, wrong };
+      const fav = score >= 80 ? 5 : (score >= 50 ? 0 : -8);
+      gameState.seniorFavor = Math.max(0, Math.min(100, gameState.seniorFavor + fav));
+      gameState._handoverOpen = false;
+      closeModal('handover-modal');
+      triggerEndShift(false);
+    }
     /* ===== 結算「表現分析」：把臨床判斷和工作表現分開，並指出這班最該改進的地方 ===== */
     function perfAnalysis(isFailure, reason) {
       const r = String(reason || '');
       const log = gameState.decisionLog || [];
-      const dec = log.filter(x => x.cat !== 'routine' && x.grade !== 'na');
+      const dec = log.filter(x => x.cat !== 'routine' && x.cat !== 'handover' && x.grade !== 'na');
       const nB = dec.filter(x => x.grade === 'best').length, nO = dec.filter(x => x.grade === 'ok').length, nX = dec.filter(x => x.grade === 'bad').length;
       const acc = dec.length ? Math.round(nB / dec.length * 100) : null;
       const resp = gameState._emResp || [], avgR = resp.length ? Math.round(resp.reduce((a, b) => a + b, 0) / resp.length) : null, maxR = resp.length ? Math.max(...resp) : null;
@@ -11186,12 +11319,15 @@
         { key: 'self', label: '照顧自己', val: `體力最低 ${minS}%｜水分最低 ${minH}%`, lv: lv(Math.min(minS, minH) >= 30, Math.min(minS, minH) >= 15) },
         { key: 'records', label: '護理紀錄', val: `交班時還欠 ${rec} 筆`, lv: lv(rec <= 2, rec <= 5) }
       ];
+      const ho = gameState._handover;
+      if (ho) rows.push({ key: 'handover', label: '交班品質', val: `${ho.perfect}/${ho.beds} 床交得完整（漏交 ${ho.need - ho.hit} 項、多交 ${ho.wrong} 項）`, lv: lv(ho.score >= 80, ho.score >= 50) });
       const tips = {
         clinical: nX ? `有 ${nX} 題選得有風險，下方交班回顧有每一題的解析。` : '有幾題可以選得更好，看一下下方交班回顧的解析。',
         emergent: missed ? `有 ${missed} 件突發事件逾時沒處理。紅框響起時，先放下手邊的事趕過去。` : `紅框響起後平均 ${avgR} 分鐘才到，聽到警報要先放下手邊的事。`,
         time: late ? `常規逾時 ${late} 件。給藥要在給藥時間前後 1 小時內、量 V/S 要在到點後 2 小時內完成，空檔時先把常規做掉。` : `加班 ${ot} 分鐘，空檔時先把常規和紀錄做掉，交班前比較不會塞車。`,
         self: minS <= minH ? `體力一度掉到 ${minS}%，有空檔就回護理站小歇或吃東西。` : `水分一度掉到 ${minH}%，經過護理站就順手喝水。`,
-        records: `紀錄欠 ${rec} 筆，空檔時回護理站補，不然會變成無償加班。`
+        records: `紀錄欠 ${rec} 筆，空檔時回護理站補，不然會變成無償加班。`,
+        handover: '交班漏了重點或交了不必要的事，看下方交班回顧裡每床該交的內容。'
       };
       // 失敗原因優先決定「最該改進」
       let focus = null, focusText = '';
@@ -11204,7 +11340,7 @@
         else if (/家屬毆打|家屬與護理人員|護病衝突/.test(r)) { focus = 'time'; focusText = '病房事件和家屬的事也有時限，回護理站時順手處理，不要放太久。'; }
         else { focus = 'emergent'; focusText = '突發事件拖太久了。紅框一響，先放下手邊的事趕過去。'; }
       } else {
-        const order = ['clinical', 'emergent', 'time', 'self', 'records'];
+        const order = ['clinical', 'emergent', 'time', 'self', 'records', 'handover'];
         const pick = order.find(k => rows.find(x => x.key === k).lv === 'bad') || order.find(k => rows.find(x => x.key === k).lv === 'ok');
         if (pick) { focus = pick; focusText = tips[pick]; }
       }
@@ -11229,16 +11365,16 @@
       if (!log.length) { box.innerHTML = '<div class="rv-empty">這班沒有遇到需要判斷的特殊／突發事件，常規也都準時完成。</div>'; return; }
       const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const clock = t => `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
-      const n = g => log.filter(x => x.grade === g).length;
-      const nLate = log.filter(x => x.cat === 'routine').length;
+      const nLate = log.filter(x => x.cat === 'routine').length, nHo = log.filter(x => x.cat === 'handover').length;
+      const n = g => log.filter(x => x.grade === g && x.cat !== 'handover').length;
       const mark = { best: '✅', ok: '⚠️', bad: '❌', na: '💬' };
       const rows = log.map(x => `<div class="rv-row rv-${x.grade}">
-          <div class="rv-head">${x.cat === 'routine' ? '⏰' : mark[x.grade]} <b>${clock(x.t)}</b>｜${esc(x.room)}${x.name ? ' ' + esc(x.name) : ''}｜${esc(x.title)}</div>
-          <div class="rv-line">你的處置：${esc(x.chosen)}</div>
-          ${(x.grade === 'ok' || x.grade === 'bad') ? `<div class="rv-line rv-better">更安全的做法：${esc(x.best)}</div>` : ''}
+          <div class="rv-head">${x.cat === 'routine' ? '⏰' : (x.cat === 'handover' ? '🗒️' : mark[x.grade])} <b>${clock(x.t)}</b>｜${esc(x.room)}${x.name ? ' ' + esc(x.name) : ''}｜${esc(x.title)}</div>
+          <div class="rv-line">${x.cat === 'handover' ? '你的交班' : '你的處置'}：${esc(x.chosen)}</div>
+          ${(x.grade === 'ok' || x.grade === 'bad') ? `<div class="rv-line rv-better">${x.cat === 'handover' ? '這床該交的重點' : '更安全的做法'}：${esc(x.best)}</div>` : ''}
           ${x.hint ? `<div class="rv-line rv-hint">💡 ${esc(x.hint)}</div>` : ''}
         </div>`).join('');
-      box.innerHTML = `<details class="rv-details"${n('bad') ? ' open' : ''}><summary>🧠 交班回顧：關鍵決策 ${log.length - nLate} 項（✅ 最安全 ${n('best')}｜⚠️ 可以更好 ${n('ok')}｜❌ 有風險 ${n('bad') - nLate}）${nLate ? `｜⏰ 常規逾時 ${nLate} 項` : ''}</summary>${rows}
+      box.innerHTML = `<details class="rv-details"${(n('bad') || nHo) ? ' open' : ''}><summary>🧠 交班回顧：關鍵決策 ${log.length - nLate - nHo} 項（✅ 最安全 ${n('best')}｜⚠️ 可以更好 ${n('ok')}｜❌ 有風險 ${n('bad') - nLate}）${nLate ? `｜⏰ 常規逾時 ${nLate} 項` : ''}${nHo ? `｜🗒️ 交班待改進 ${nHo} 床` : ''}</summary>${rows}
         <div class="rv-note">評等依遊戲內各選項的「病人安全」數值比較，僅供娛樂與學習參考。</div></details>`;
     }
 
@@ -11823,7 +11959,7 @@
       const hasPendingEvents = gameState.pendingEvents.length > 0;
 
       if (isShiftTimeReached && !hasPendingEvents) {
-        triggerEndShift(false);
+        startHandover();   // 先交班，交完才結算
       } else if (isShiftTimeReached && gameState.currentTime - gameState.shiftEndTime >= 480) {
         // 加班上限 8 小時：避免只顧急症、略過常規事項的玩家讓班永遠結不了
         triggerEndShift(true, "【護理長強制交班】你已加班滿 8 小時，待辦事項堆積如山，護理長把你換下班，剩下的全丟給下一班……");

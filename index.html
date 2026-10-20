@@ -3201,6 +3201,7 @@
       showToast(`⚫【病房 ${room}】${p.name}：${reason || '病人已死亡'}`, 6000);
       // 死亡後續：特殊事件「遺體護理」（無時限，需到該床處理）
       const eolData = resolveEventFromTemplate({ eventId: 'SPECIAL_END_OF_LIFE_CARE' }, p);
+      if (p.eolSingle) eolData.options = eolData.options.filter(o => o.keyTag === 'A');   // 指定個案（婁老師）：遺體護理只有一個選項
       eolData.spawnTime = eolData.alarmSpawnTime = gameState.currentTime;
       gameState.pendingEvents.push({ time: gameState.currentTime, patient: p, data: eolData });
       updateRoomCardsVisualHierarchy();
@@ -3419,7 +3420,10 @@
         "desc": "【病房】醫師已宣告病人死亡。醫師死亡宣告後，該如何處置？",
         "timeCost": 15,
         "options": [
-          { "keyTag": "A", "text": "與家屬及學姐細心地為病患打扮，讓他好好地走最後一程（耗時 15 分鐘，體力 -5，壓力 -3，紀錄 +1）", "time": 15, "stress": -3, "stamina": -5, "hydration": 0, "records": 1, "safety": 0, "favor": 0 }
+          { "keyTag": "A", "text": "與家屬及學姐細心地為病患打扮，讓他好好地走最後一程（耗時 15 分鐘，體力 -5，壓力 -3，紀錄 +1）", "time": 15, "stress": -3, "stamina": -5, "hydration": 0, "records": 1, "safety": 0, "favor": 0 },
+          { "keyTag": "B", "text": "大概擦一下就好，反正死人不會抱怨（耗時 8 分鐘，體力 -3，壓力 +3，紀錄 +1，10% 機率家屬毆打護理人員）", "time": 8, "stress": 3, "stamina": -3, "hydration": 0, "records": 1, "safety": 0, "favor": 0, "endShiftP": 0.10, "endShift": "【家屬毆打護理人員】遺體護理處理草率，家屬情緒失控，當場動手毆打護理人員，你被送往急診驗傷，這班到此為止。" },
+          { "keyTag": "C", "text": "請家屬自己擦一擦（耗時 2 分鐘，壓力 -10，紀錄 +1，20% 機率家屬毆打護理人員）", "time": 2, "stress": -10, "stamina": 0, "hydration": 0, "records": 1, "safety": 0, "favor": 0, "endShiftP": 0.20, "endShift": "【家屬毆打護理人員】遺體護理處理草率，家屬情緒失控，當場動手毆打護理人員，你被送往急診驗傷，這班到此為止。" },
+          { "keyTag": "D", "text": "先去其他床，等等再來（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
         ]
       }
     });

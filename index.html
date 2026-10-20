@@ -3881,7 +3881,7 @@
           if (!(Math.random() < prob * (gameState.pineapple ? 2 : 1))) return;
           pt._discharging = true;
         } else if (!(prob >= 1 || Math.random() < prob * ((e.patient && e.patient.isWard) ? wardEventMult() : 1) * ((gameState.isIntern && e.data.category === 'emergent') ? INTERN.emergentMult : 1))) return;
-        if (silent && (e.data.category === 'routine') && bloodDrawPending()) { (gameState._bloodHold = gameState._bloodHold || []).push(e); return; }
+        if (silent && ['routine', 'special', 'emergent'].includes(e.data.category) && bloodDrawPending()) { (gameState._bloodHold = gameState._bloodHold || []).push(e); return; }
         if (silent) {
           const d = e.data;
           d.spawnTime = gameState.currentTime;
@@ -9539,6 +9539,7 @@
         endTime = 8 * 60;
       }
 
+      gameState._bloodHold = []; gameState._bloodBriefDone = false;
       // 開局個案 Stage 1 事件機率檢定觸發
       gameState.activePatients.forEach(p => {
         const room = p.assignedRoom;
@@ -9549,7 +9550,8 @@
             const prob = tunedProb(ev, ev.probability !== undefined ? ev.probability : 1.0, shift);
             if (Math.random() <= prob) {
               ev.spawnTime = startTime;
-              gameState.pendingEvents.push({ time: startTime, patient: p, data: ev });
+              if (isBloodShift && ['routine', 'special', 'emergent'].includes(ev.category || 'special')) gameState._bloodHold.push({ time: startTime, patient: p, data: ev });   // 抽血班：抽完血才跳
+              else gameState.pendingEvents.push({ time: startTime, patient: p, data: ev });
               plot.completedEventIds.push(ev.id);
               plot.pendingEvents = plot.pendingEvents.filter(e => e.id !== ev.id);
             }
@@ -9630,7 +9632,6 @@
       gameState.seniorFavor = 65;
       gameState.patientSafety = 100;
 
-      gameState._bloodHold = []; gameState._bloodBriefDone = false;
       fireDueScheduledEvents(true);   // 排在開班時刻的事件，開局就響鈴
 
       renderRoomsOverlay();
@@ -9656,7 +9657,7 @@
       const shiftTitle = gameState.isIntern ? '實習班 (08:00)' : (shift === 'day' ? (isBloodShift ? '白班 (抽血班 07:00)' : '白班 (08:00)') : (shift === 'evening' ? '小夜班 (16:00)' : '大夜班 (00:00)'));
       showToast(`【${gameState.playerName}】正式接掌 ${shiftTitle}！體力/水分 100%，壓力值 0%。`);
       gameState._handoverOpen = false; gameState._handover = null;
-      if (gameState.isBloodDrawShift) setTimeout(() => showToast('💉 抽血班：先把 7 點的清晨抽血全部抽完，抽完才看接班單、才開始其他常規。', 4500), 600);
+      if (gameState.isBloodDrawShift) setTimeout(() => showToast('💉 抽血班：先把 7 點的清晨抽血全部抽完，抽完才看接班單、其他事件才會開始跳。', 4500), 600);
       else setTimeout(() => { try { if (!gameState.isGameOver && !gameState.isBloodDrawShift) openShiftBrief(true); } catch (e) { } }, 300);
       if (gameState.isIntern) {
         if (badgeEl) badgeEl.innerText = `${gameState.playerName} ${gameState.playerGender === 'male' ? '👨‍⚕️' : '👩‍⚕️'}＋學姊`;
@@ -10514,8 +10515,8 @@
         (gameState._internHold = gameState._internHold || []).push(evObj);
         return;
       }
-      // 抽血班：清晨抽血全部做完前，其他常規事件先不跳，抽完再一起放出
-      if (category === 'routine' && bloodDrawPending()) {
+      // 抽血班：清晨抽血全部做完前，常規／特殊／突發事件都先不跳，抽完再一起放出
+      if (['routine', 'special', 'emergent'].includes(category) && !String(data.id || '').startsWith('BLOOD_') && bloodDrawPending()) {
         data.category = category;
         (gameState._bloodHold = gameState._bloodHold || []).push(evObj);
         return;
@@ -11095,7 +11096,7 @@
         if (d._dueBy !== undefined) d._dueBy = Math.max(d._dueBy, now + MED_WINDOW);
         ringRoomAlarm({ ...ev, time: now });
       });
-      showToast('💉 清晨抽血全部完成！先看接班單，再開始常規工作。', 3500);
+      showToast('💉 清晨抽血全部完成！先看接班單，其他事件接著開始。', 3500);
       setTimeout(() => { try { if (!gameState.isGameOver) openShiftBrief(true); } catch (e) { } }, 200);
     }
     // 實習班階段：10:00 進入第二階段的提醒；11:30 起把第一階段擋下的事件每 20 分鐘放出一件

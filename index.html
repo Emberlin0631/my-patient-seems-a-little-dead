@@ -9676,7 +9676,7 @@
       try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }   // 檢驗報告（要在確定是否為抽血班之後排）
       // 壓力值起始為 0%，體力與水分起始為 100%！
       gameState.stress = 0;
-      gameState.stamina = 100;
+      gameState.stamina = 100; gameState._stamLast = 100;
       gameState.hydration = 100;
       gameState.records = initRecords;
       gameState.seniorFavor = 65;
@@ -12151,7 +12151,15 @@
       el.style.display = '';
     }
 
+    // 體力消耗倍率：所有體力「減少」統一乘上 0.8（增加不受影響）
+    const STAMINA_LOSS_MULT = 0.8;
+    function applyStaminaScale() {
+      const last = gameState._stamLast;
+      if (typeof last === 'number' && gameState.stamina < last) gameState.stamina = Math.max(0, last - (last - gameState.stamina) * STAMINA_LOSS_MULT);
+      gameState._stamLast = gameState.stamina;
+    }
     function checkConditions() {
+      applyStaminaScale();
       applyVitalFloor();
       if (gameState.stress >= 100) {
         triggerEndShift(true, "【崩潰離職】壓力爆表達 100%！呼叫鈴響個不停，你當場把離職信拍在桌上。");
@@ -12468,9 +12476,9 @@
 
     function updateHUD() {
       try { updateAnxietyTag(); } catch (e) { }
-      try { applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); updateIntercomBtn(); } catch (e) { }
+      try { applyStaminaScale(); applyVitalFloor(); updateVitalDanger(); updatePlayerMood(); updateIntercomBtn(); } catch (e) { }
       if (!gameState.isGameOver) {   // 表現分析：本班體力、水分最低點
-        gameState._minStam = Math.min(gameState._minStam ?? 100, gameState.stamina);
+        gameState._minStam = Math.min(gameState._minStam ?? 100, Math.round(gameState.stamina));
         gameState._minHyd = Math.min(gameState._minHyd ?? 100, Math.round(gameState.hydration));
       }
       if (gameState.isIntern) { try { internStatNag(); } catch (e) { } }
@@ -12506,7 +12514,7 @@
       document.getElementById("txt-stress").innerText = `${gameState.stress}%`;
       document.getElementById("bar-stress").style.width = `${gameState.stress}%`;
 
-      document.getElementById("txt-stamina").innerText = `${gameState.stamina}%`;
+      document.getElementById("txt-stamina").innerText = `${Math.round(gameState.stamina)}%`;
       document.getElementById("bar-stamina").style.width = `${gameState.stamina}%`;
 
       document.getElementById("txt-hydration").innerText = `${Math.round(gameState.hydration)}%`;
@@ -13037,7 +13045,7 @@
       titleEl.innerText = `📋 ${shiftName}交班結算單 (${gameState.playerName})`;
 
       document.getElementById("rep-stress").innerText = `${gameState.stress}%`;
-      document.getElementById("rep-body").innerText = `${gameState.stamina}% / ${Math.round(gameState.hydration)}%`;
+      document.getElementById("rep-body").innerText = `${Math.round(gameState.stamina)}% / ${Math.round(gameState.hydration)}%`;
       document.getElementById("rep-records").innerText = `${gameState.records} 筆 (功德加班 ${gameState.records * recordMinutes()} 分鐘)`;
       document.getElementById("rep-favor").innerText = `${gameState.seniorFavor}分 / ${gameState.patientSafety}分`;
 
@@ -13653,6 +13661,7 @@
 /* 3D 延遲載入：預設不執行任何 3D 程式，電腦版載入完成後才載入，手機只有按 🎨 才載入 */
 (function(){
   var loaded=false, loading=false;
+  function force2D(){ try { return localStorage.getItem('gfxForce2D') === '1'; } catch(e){ return false; } }   // 只給自動測試用
   function pref(){ var m=null; try { m = localStorage.getItem('gfxMode2'); } catch(e){} return m==='off' ? null : m; }   // 舊的 2D 設定不再沿用
   function isTouch(){ return window.innerWidth <= 820 || (navigator.maxTouchPoints > 1); }
   function label(m){ var b=document.getElementById('hud-gfx-btn'); if(b) b.textContent = m==='high'?'\uD83C\uDFA8 3D高':m==='low'?'\uD83C\uDFA8 3D省電':'\uD83C\uDFA8 2D'; }
@@ -13673,6 +13682,7 @@
     });
   };
   window.addEventListener('load', function(){
+    if (force2D()) { label('off'); return; }
     var m = pref(); label(m || (isTouch() ? 'low' : 'high'));
     setTimeout(function(){ load(); }, 300);   // 手機也直接載入 3D（預設省電）
   });

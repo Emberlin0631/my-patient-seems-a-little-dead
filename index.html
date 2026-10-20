@@ -11302,7 +11302,7 @@
         const best = pool[sc.indexOf(mx)];
         const grade = mx === mn ? 'na' : (my >= mx ? 'best' : ((my <= mn || my < 0) ? 'bad' : 'ok'));
         const entry = {
-          t: gameState.currentTime, room: p ? p.assignedRoom : '護理站', name: p ? p.name : '', cat: d.category,
+          t: gameState.currentTime, room: p ? p.assignedRoom : '護理站', name: p ? p.name : '', cat: d.category, evId: String(d.id || ''),
           title: d.title || '', chosen: swapSenior(stripParenText(opt.text || '')), best: swapSenior(stripParenText(best.text || '')), grade, hint: optionHintFor(d, opt)
         };
         (gameState.decisionLog = gameState.decisionLog || []).push(entry);
@@ -11313,6 +11313,8 @@
 
 
     /* ===== 交班系統：開班看接班單；下班前每床勾出要交代的重點，計入表現分析與交班回顧 ===== */
+    // 處理完就結束、不用交給下一班的事件（非病情的呼叫鈴：冷氣、尿壺、點滴滴完、問換藥時間）；胸悶仍要交
+    const HANDOVER_SKIP_RE = /^CALL_(AC|URINAL|IV_DONE|ASK_TIME)/;
     const HANDOVER_TRIVIA = [
       '病人午餐吃了排骨飯，說有點鹹', '家屬人很好，有送水果給護理站', '病人喜歡看八點檔，晚上不要吵他', '病人說護理師很漂亮',
       '病人的手機充電線借給隔壁床', '病人說醫院的醫生看起來都老老的', '家屬問停車場怎麼繳費', '病人今天心情不錯，有跟隔壁床聊天',
@@ -11354,7 +11356,7 @@
       gameState.activePatients.filter(p => !p.isDead && !p.isDischarged).forEach(p => {
         const good = [], bad = [];
         if (p.cautions) good.push(`注意：${p.cautions}`);
-        const evs = log.filter(x => x.room === p.assignedRoom && ['special', 'emergent'].includes(x.cat));   // 實習班的「優先順序練習」是教學紀錄，不列入交班
+        const evs = log.filter(x => x.room === p.assignedRoom && ['special', 'emergent'].includes(x.cat) && !HANDOVER_SKIP_RE.test(x.evId || ''));   // 實習班的「優先順序練習」是教學紀錄，不列入交班
         const seen = new Set();
         evs.forEach(x => {
           const tt = String(x.title || '').replace(/[（(][^）)]*[）)]/g, '').trim(); if (!tt || seen.has(tt)) return; seen.add(tt);

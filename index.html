@@ -12996,7 +12996,7 @@
       // 底部：邀請語（網站上線時附網址）
       const url = /^https?:/.test(location.protocol) ? location.origin + location.pathname.replace(/index\.html$/, '') : '';
       g.textAlign = 'center'; g.fillStyle = '#e2e8f0'; g.font = `bold 44px ${FONT}`;
-      g.fillText('你也來值一個班看看？', W / 2, H - (url ? 190 : 140));
+      g.fillText('不能只有我下班還要上班', W / 2, H - (url ? 190 : 140));
       if (url) { g.fillStyle = '#7dd3fc'; g.font = `bold 38px ${FONT}`; g.fillText(url.replace(/^https?:\/\//, ''), W / 2, H - 125); }
       g.fillStyle = '#64748b'; g.font = `28px ${FONT}`;
       g.fillText('血液腫瘤科護理師模擬 ‧ 僅供娛樂，非臨床指引', W / 2, H - 50);

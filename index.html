@@ -11284,7 +11284,7 @@
       gameState.activePatients.filter(p => !p.isDead && !p.isDischarged).forEach(p => {
         const good = [], bad = [];
         if (p.cautions) good.push(`注意：${p.cautions}`);
-        const evs = log.filter(x => x.room === p.assignedRoom && ['special', 'emergent', 'drill'].includes(x.cat));
+        const evs = log.filter(x => x.room === p.assignedRoom && ['special', 'emergent'].includes(x.cat));   // 實習班的「優先順序練習」是教學紀錄，不列入交班
         const seen = new Set();
         evs.forEach(x => {
           const tt = String(x.title || '').replace(/[（(][^）)]*[）)]/g, '').trim(); if (!tt || seen.has(tt)) return; seen.add(tt);

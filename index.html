@@ -1772,7 +1772,7 @@
         <span id="ward-badge" class="ward-badge" style="display:none;"></span>
         <button class="station-btn" onclick="event.stopPropagation(); drinkWaterAction();">💧 喝水 (+25% 水分 / 2分)</button>
         <button class="station-btn" style="background:#475569;" onclick="event.stopPropagation(); writeRecordAction();">📝 補紀錄 (-1 筆 / 5分)</button>
-        <button class="station-btn" style="background:#0d9488;" onclick="event.stopPropagation(); restAction();">😮‍💨 小歇一下 (+5 體力 / 5分)</button>
+        <button class="station-btn" style="background:#0d9488;" onclick="event.stopPropagation(); restAction();">😮‍💨 小歇一下 (+8 體力 / 5分)</button>
         <button class="station-btn" id="intercom-btn" style="background:#7c3aed;" onclick="event.stopPropagation(); openIntercom();">📞 對講機</button>
         <button class="station-btn" id="btn-call-doctor" style="background:#8b5cf6; display:none;" onclick="event.stopPropagation(); callDoctorForBlood();">📞 請醫師來on (8:30後)</button>
       </div>
@@ -12421,8 +12421,8 @@
     function restNow() {
       if (gameState.isPaused || gameState.isGameOver) return;
       SoundFX.playDrink();
-      gameState.stamina = Math.min(100, gameState.stamina + 5);
-      showToast("坐下來小歇一下……體力 +5，耗時 5 分鐘。");
+      gameState.stamina = Math.min(100, gameState.stamina + 8);
+      showToast("坐下來小歇一下……體力 +8，耗時 5 分鐘。");
       advanceTime(5);
       updateHUD();
     }

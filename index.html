@@ -9387,7 +9387,7 @@
       SoundFX.playPunch();
 
       const nickInput = document.getElementById('input-nickname').value.trim();
-      gameState.playerName = nickInput || (selectedGender === 'male' ? '林護理師' : '菜鳥護理師');
+      gameState.playerName = nickInput || '菜鳥護理師';
       gameState.playerGender = selectedGender;
       gameState.isIntern = selectedShift === 'intern';   // 實習班＝白班 08:00 的教學版
       gameState.currentShift = gameState.isIntern ? 'day' : selectedShift;

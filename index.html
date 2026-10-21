@@ -3252,6 +3252,15 @@
           return false;
         }
         if (x && x.endShift) { triggerEndShift(true, x.endShift); return true; }
+        if (x && x.penalty) {   // 病房事件逾時扣分（不結束這一班）
+          const pe = x.penalty;
+          if (pe.stress) gameState.stress = Math.max(0, Math.min(100, gameState.stress + pe.stress));
+          if (pe.favor) gameState.seniorFavor = Math.max(0, Math.min(100, gameState.seniorFavor + pe.favor));
+          if (pe.safety) gameState.patientSafety = Math.max(0, Math.min(100, gameState.patientSafety + pe.safety));
+          showToast(`⏰ ${x.toast || (ev.data.title + ' 超過時限')}`, 5000);
+          updateRoomCardsVisualHierarchy(); updateHUD();
+          return false;
+        }
         if (x && x.event) {
           const nd = resolveWardEvent({ eventId: x.event });
           if (nd) ringRoomAlarm({ time: gameState.currentTime, patient: WARD_PATIENT, data: nd });
@@ -3752,6 +3761,34 @@
           { "keyTag": "C", "text": "先忙手邊的事，晚點再處理（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
         ]
       },
+      "WARD_TISSUE": {
+        "id": "WARD_TISSUE", "category": "ward",
+        "title": "廁所衛生紙用完了",
+        "desc": "家屬跑到護理站：「廁所衛生紙用完了啦！」病人還坐在廁所裡等。",
+        "deadlineMinutes": 30, "onExpire": { "penalty": { "stress": 5, "favor": -5 }, "toast": "病人在廁所等了好久，家屬臉很臭地跑來護理站又講了一次。" },
+        "timeCost": 3,
+        "options": [
+          { "keyTag": "A", "text": "從護理站備品櫃拿一捲衛生紙送過去（耗時 3 分鐘，體力 -1）", "time": 3, "stress": 0, "stamina": -1, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "小事馬上處理，家屬和病人都安心。" },
+          { "keyTag": "B", "text": "先給家屬一包面紙應急，再請清潔人員補貨（耗時 1 分鐘，壓力 +3）", "time": 1, "stress": 3, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0,
+            "hint": "先應急再通知補貨也可以，記得確認之後有補上。" },
+          { "keyTag": "C", "text": "先忙手邊的事，晚點再處理（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+        ]
+      },
+      "WARD_MEAL_BAD": {
+        "id": "WARD_MEAL_BAD", "category": "ward",
+        "title": "反應餐點不好吃",
+        "desc": "家屬拿著餐盒到護理站抱怨：「今天的飯也太難吃了吧，又冷又沒味道，他一口都吃不下！」",
+        "deadlineMinutes": 60, "onExpire": { "penalty": { "stress": 5, "favor": -3 }, "toast": "家屬又拿著冷掉的餐盒來護理站，覺得沒人理他們。" },
+        "timeCost": 5,
+        "options": [
+          { "keyTag": "A", "text": "耐心聽完，評估病人吃了多少，聯絡營養師討論改成吃得下的飲食（耗時 5 分鐘，壓力 +2，紀錄 +1）", "time": 5, "stress": 2, "stamina": -1, "hydration": 0, "records": 1, "safety": 3, "favor": 0,
+            "hint": "病人吃不下要注意營養狀況。化療常讓味覺改變、沒有食慾，可以請營養師評估，改成少量多餐或病人喜歡的口味。" },
+          { "keyTag": "B", "text": "跟家屬說醫院伙食就是這樣，想吃什麼可以自己去外面買（耗時 1 分鐘，壓力 +5）", "time": 1, "stress": 5, "stamina": 0, "hydration": 0, "records": 0, "safety": -2, "favor": 0,
+            "hint": "病人吃不下是要評估的問題，不只是伙食好不好吃；營養不良會影響治療與恢復。" },
+          { "keyTag": "C", "text": "先忙手邊的事，晚點再處理（保留事件）", "time": 0, "stress": 0, "stamina": 0, "hydration": 0, "records": 0, "safety": 0, "favor": 0, "defer": true }
+        ]
+      },
       "WARD_TOILET": {
         "id": "WARD_TOILET", "category": "ward",
         "title": "馬桶壞了",
@@ -3829,15 +3866,18 @@
       }
     };
     const WARD_SCHEDULE = (() => {
-      // 每個事件每班最多隨機觸發一次：白班 10%、小夜 6%、大夜 3%（電話禮儀度測試只在白班；家屬致謝只在白班、小夜）
-      const W = { day: [["08:00", "15:00"], 0.10], evening: [["16:00", "23:00"], 0.06], night: [["00:00", "07:00"], 0.03] };
+      // 每個事件每班最多隨機觸發一次。每班「病房事件預計出現量」固定（白班 0.70、小夜 0.36、大夜 0.12 件），
+      // 依當班可出現的事件數平均分配機率，新增事件不會讓總量變多。
+      // 電話禮儀度測試只在白班；家屬致謝只在白班、小夜；餐點不好吃只在午餐、晚餐時間（白班、小夜）
+      const TARGET = { day: 0.70, evening: 0.36, night: 0.12 };
+      const WIN = { day: ["08:00", "15:00"], evening: ["16:00", "23:00"], night: ["00:00", "07:00"] };
+      const MEAL_WIN = { day: ["12:00", "14:00"], evening: ["17:30", "19:30"] };
+      const IDS = ["WARD_TV", "WARD_TOILET", "WARD_CLOGGED_TOILET", "WARD_ASK_CONDITION", "WARD_PHONE_ETIQUETTE", "WARD_THANKS_PINEAPPLE", "WARD_THANKS_BOBA", "WARD_TISSUE", "WARD_MEAL_BAD"];
+      const allowed = (id, sh) => !(id === "WARD_PHONE_ETIQUETTE" && sh !== "day") && !(/^WARD_THANKS_/.test(id) && sh === "night") && !(id === "WARD_MEAL_BAD" && !MEAL_WIN[sh]);
       const out = [];
-      ["WARD_TV", "WARD_TOILET", "WARD_CLOGGED_TOILET", "WARD_ASK_CONDITION", "WARD_PHONE_ETIQUETTE", "WARD_THANKS_PINEAPPLE", "WARD_THANKS_BOBA"].forEach(id => {
-        Object.keys(W).forEach(sh => {
-          if (id === "WARD_PHONE_ETIQUETTE" && sh !== "day") return;
-          if (/^WARD_THANKS_/.test(id) && sh === "night") return;   // 家屬致謝：白班、小夜才會出現
-          out.push({ eventId: id, window: W[sh][0], probability: W[sh][1], excludeShifts: ["day", "evening", "night"].filter(x => x !== sh) });
-        });
+      Object.keys(TARGET).forEach(sh => {
+        const ids = IDS.filter(id => allowed(id, sh)), p = TARGET[sh] / ids.length;
+        ids.forEach(id => out.push({ eventId: id, window: (id === "WARD_MEAL_BAD" ? MEAL_WIN : WIN)[sh], probability: p, excludeShifts: ["day", "evening", "night"].filter(x => x !== sh) }));
       });
       return out;
     })();

@@ -9825,6 +9825,8 @@
         e.time = Math.max(e.time - MED_WINDOW, startTime, shift === 'day' ? 8 * 60 : 0);   // 白班最早 8 點才跳
       });
       gameState.isBloodDrawShift = isBloodShift;
+      gameState._roundsOn = (shift === 'night' && !gameState.isIntern);   // 大夜定期巡視
+      gameState.activePatients.forEach(p => { p._roundVisited = false; });
       try { scheduleLabReports(shift); } catch (e) { gameState.labQueue = []; }   // 檢驗報告（要在確定是否為抽血班之後排）
       // 壓力值起始為 0%，體力與水分起始為 100%！
       gameState.stress = 0;
@@ -10061,7 +10063,13 @@
           badge.innerText = alarmCount > 1 ? `${rText} 共${alarmCount}項` : rText;
           badge.classList.add("badge-routine");
         }
-        // 4. 無任何事件(無處置)採綠色框
+        // 4. 大夜：這兩小時還沒巡視的床（藍框提醒）
+        else if (gameState._roundsOn && !p._roundVisited) {
+          card.classList.add("cat-routine");
+          badge.innerText = `🔦 待巡房 (${roundRemain()}分)`;
+          badge.classList.add("badge-routine");
+        }
+        // 5. 無任何事件(無處置)採綠色框
         else {
           card.classList.add("cat-none");
           badge.innerText = "穩定";
@@ -10431,12 +10439,41 @@
        ARRIVAL & MULTI-EVENT RESOLUTION
        多事件疊加時開啟條列選單，依嚴重性選擇執行哪一事件
        ======================================================== */
+    // ===== 大夜定期巡視：每兩小時（00–02、02–04、04–06、06–08）每位病人都要走到床邊看過一次 =====
+    const ROUND_BLOCK = 120, ROUND_SAFETY = -2;
+    function markRound(roomNum) {
+      if (!gameState._roundsOn) return;
+      const p = gameState.activePatients.find(pt => pt.assignedRoom === roomNum);
+      if (p && !p.isDead && !p.isDischarged && !p._roundVisited) { p._roundVisited = true; updateRoomCardsVisualHierarchy(); }
+    }
+    function roundTick(t0, t1) {
+      if (!gameState._roundsOn) return;
+      const b0 = Math.floor(t0 / ROUND_BLOCK), b1 = Math.floor(t1 / ROUND_BLOCK);
+      if (b1 === b0) return;
+      const end = b1 * ROUND_BLOCK, missed = [];
+      gameState.activePatients.forEach(p => {
+        if (p.isDead || p.isDischarged) return;
+        if (!p._roundVisited) {
+          missed.push(p.assignedRoom);
+          gameState.patientSafety = Math.max(0, gameState.patientSafety + ROUND_SAFETY);
+          logRoutineLate('round', p, ROUND_SAFETY);
+        }
+        p._roundVisited = false;
+      });
+      const hh = String(Math.floor((end % 1440) / 60)).padStart(2, '0');
+      if (missed.length) showToast(`🔦 ${hh}:00 巡房時間到，${missed.join('、')} 床這兩小時沒有巡視到（病人安全 ${ROUND_SAFETY * missed.length}）`, 5000);
+      else showToast(`🔦 ${hh}:00 這兩小時每床都巡視過了 👍`, 3000);
+      updateRoomCardsVisualHierarchy();
+    }
+    function roundRemain() { return ROUND_BLOCK - (gameState.currentTime % ROUND_BLOCK); }
+
     function checkArrivalTrigger(roomNum) {
+      markRound(roomNum);
       const roomAlarms = roomPending(roomNum);
 
       if (roomAlarms.length === 0) {
         const p = gameState.activePatients.find(pt => pt.assignedRoom === roomNum);
-        if (p) showToast(`已巡視病房 ${roomNum} (${p.name})。目前無待辦處置。`);
+        if (p) showToast(`🔦 已巡視病房 ${roomNum} (${p.name})。目前無待辦處置。`);
         return;
       }
 
@@ -10531,6 +10568,7 @@
 
     function executeSingleRoomEvent(ev) {
       const roomNum = ev.patient.assignedRoom;
+      markRound(roomNum);
       const category = ev.data.category || (ev.data.id?.startsWith("ROUTINE") ? "routine" : (ev.isRandom ? "emergent" : "special"));
 
       if (category === "routine") {
@@ -11428,6 +11466,7 @@
     function isMedRoutine(d) { return !!(d && (d.isOralMed || d.isMorphine || d.isAntibiotic || d.isInfusion)); }
     function routineDueBy(d, spawnTime) { return (d && d._dueBy !== undefined) ? d._dueBy : spawnTime + 120; }
     const ROUTINE_LATE_WHY = {
+      round: ['巡視病人', '大夜每兩小時要巡視每位病人，確認呼吸、意識、管路與安全，才能及早發現病情變化，或防止跌倒、自拔管路等意外。'],
       oral: ['給口服藥', '口服的標靶藥、類固醇、排鐵劑等要按時服用才能維持藥效；延遲會影響療效，也要補寫延遲紀錄。'],
       vs: ['量 vital sign', '生命徵象是發現病情變化的第一線，延遲測量可能錯過發燒、低血壓等早期惡化徵兆。'],
       infusion: ['給輸液', '輸液延遲會影響水分與電解質補充，以及化療前後的水化，也會打亂後續給藥時間。'],
@@ -11439,7 +11478,7 @@
         const w = ROUTINE_LATE_WHY[kind]; if (!w) return;
         (gameState.decisionLog = gameState.decisionLog || []).push({
           t: gameState.currentTime, room: p ? p.assignedRoom : '', name: p ? p.name : '', cat: 'routine',
-          title: `常規：${w[0]}`, chosen: `${kind === 'vs' ? '到點超過 2 小時' : '超過給藥時間 1 小時'}才完成（病人安全 ${safety}）`, best: `${kind === 'vs' ? '到點後 2 小時內' : '給藥時間前後 1 小時內'}完成${w[0]}`, grade: 'bad', hint: w[1]
+          title: `常規：${w[0]}`, chosen: kind === 'round' ? `這兩小時沒有走到床邊巡視（病人安全 ${safety}）` : `${kind === 'vs' ? '到點超過 2 小時' : '超過給藥時間 1 小時'}才完成（病人安全 ${safety}）`, best: kind === 'round' ? '每兩小時至少到床邊看過一次' : `${kind === 'vs' ? '到點後 2 小時內' : '給藥時間前後 1 小時內'}完成${w[0]}`, grade: 'bad', hint: w[1]
         });
       } catch (e) { }
     }
@@ -12091,6 +12130,7 @@
       try { checkClockMilestones(_t0, gameState.currentTime); } catch (e) { }
       if (gameState.isIntern) { try { internStageTick(_t0, gameState.currentTime); } catch (e) { } }
       try { bloodHoldTick(); } catch (e) { }
+      try { roundTick(_t0, gameState.currentTime); } catch (e) { }
       runAdmissionDrawsBetween(_t0, gameState.currentTime);   // 入院抽選（每 30 分鐘）
       // 固定死亡時間的個案（例：安寧病人 11:30 安詳離世）
       gameState.activePatients.forEach(p => {

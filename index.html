@@ -9131,18 +9131,19 @@
     let selectedGender = 'female';
     let selectedShift = 'day';
 
+    // 語言：中文版 index.html、英文版 en.html（由 tools/i18n/build_en.py 產生），共用同一份存檔
+    const IS_EN = document.documentElement.lang === 'en';
     function setLanguage(lang) {
       SoundFX.playClick();
-      document.getElementById('btn-lang-zh').classList.toggle('active', lang === 'zh');
-      document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
-      if (lang === 'en') {   // 英文版尚未製作：不假裝切換成功
-        document.getElementById('btn-lang-zh').classList.add('active');
-        document.getElementById('btn-lang-en').classList.remove('active');
-        showToast('English version is coming soon.（英文版製作中，敬請期待）', 3500);
-        return;
-      }
-      showToast('已切換為繁體中文');
+      try { localStorage.setItem('ward24_lang', lang); } catch (e) { }
+      if (lang === 'en' && !IS_EN) { location.href = 'en.html'; return; }
+      if (lang === 'zh' && IS_EN) { location.href = 'index.html'; return; }
     }
+    (function initLangButtons() {
+      const z = document.getElementById('btn-lang-zh'), e = document.getElementById('btn-lang-en');
+      if (z) z.classList.toggle('active', !IS_EN);
+      if (e) e.classList.toggle('active', IS_EN);
+    })();
 
 
     /* ========================================================
@@ -13022,7 +13023,7 @@
         ${section('🩺', '臨床病史', renderTerms(p.history, true))}
         ${section('👪', '家庭背景', renderTerms(p.family, true))}
         ${section('🎭', '性格特質', renderTerms(p.personality, true))}
-        ${p.memorial ? section('💌', '兒子想對她說', renderTerms(p.memorial, true)) : ''}
+        ${p.memorial ? section('💌', '兒子想對她說', renderTerms(p.memorial, true).replace(/\n/g, '<br>')) : ''}
         ${p.hideSchedule ? '' : section('🕒', '常規排程發生時間', `
           <div style="display:flex; flex-wrap:wrap; gap:10px;">
             ${shiftBlock('☀️ 白班 08:00–16:00', '#fbbf24', groups.day)}
